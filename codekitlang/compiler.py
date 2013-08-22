@@ -67,14 +67,21 @@ def get_filepath(filename, base_path, framework_paths):
     if not ext:
         filename += '.kit'
         ext = '.kit'
-    for prefix in ('', '_'):
-        filepath = os.path.abspath(os.path.join(base_path, prefix + filename))
-        if os.path.exists(filepath):
-            logger.debug('Using %s for %s', filepath, filename)
-            return filepath
-    for prefix in ('', '_'):
-        for path in framework_paths:
-            filepath = os.path.abspath(os.path.join(path, prefix + filename))
+    if ext == '.kit':
+        prefixes = ('', '_')
+        paths = (base_path,) + tuple(framework_paths)
+    else:
+        prefixes = ('',)
+        paths = (base_path,)
+    for prefix in prefixes:
+        for path in paths:
+            filepath = os.path.abspath(os.path.join(path, filename))
+            basename = os.path.basename(filename)
+            if prefix and not basename.startswith(prefix):
+                filepath = os.path.join(
+                    os.path.dirname(filepath),
+                    prefix + os.path.basename(filename)
+                )
             if os.path.exists(filepath):
                 logger.debug('Using %s for %s', filepath, filename)
                 return filepath
