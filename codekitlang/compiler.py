@@ -116,17 +116,20 @@ class Compiler(object):
 
     def get_new_signature(self, filepath):
         """
+        @param filepath: `realpath`ed full path of file
         @type filepath: str
-        @rtye: (int, int, int)
+        @return: tuple of inode number, mtime and size
+        @rtye: (int, int, int) or None
         """
-        new_signature = None
+        cached_signature = None
         if filepath in self.parsed_caches:
             cache = self.parsed_caches[filepath]
-            stat = os.stat(filepath)
-            signature = stat.st_ino, stat.st_mtime, stat.st_mtime
-            if cache['signature'] == signature:
-                new_signature = signature
-        return new_signature
+            cached_signature = cache['signature']
+        stat = os.stat(filepath)
+        signature = stat.st_ino, stat.st_mtime, stat.st_size
+        if cached_signature and signature == cached_signature:
+            signature = None
+        return signature
 
     def parse(self, filepath=None, filename=None, basepath=None):
         if filepath:
@@ -136,7 +139,7 @@ class Compiler(object):
         else:
             return None  # TODO: handle assert
         signature = self.get_new_signature(filepath)
-        if not signature:
+        if signature:
             _, ext = os.path.splitext(filepath)
             encoding, s = get_file_content(filepath)
             data = parse_string(s) if ext == '.kit' else [('NOOP', s)]
