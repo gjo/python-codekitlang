@@ -285,3 +285,34 @@ class ParseFileTestCase(unittest.TestCase):
              ('LOAD', 'aaa'),
              ('NOOP', '\nBBB\n')]
         )
+
+
+class GenerateStrTestCase(unittest.TestCase):
+
+    def setUp(self):
+        from ..compiler import Compiler
+
+        self.dp = os.path.join(os.path.dirname(__file__), 'data')
+        self.basepath = os.path.join(self.dp, 'b')
+        self.obj = Compiler(framework_paths=(
+            os.path.join(self.dp, 'f1'),
+            os.path.join(self.dp, 'f2'),
+        ))
+        self.func = self.obj.generate_str
+
+    def assertGenerate(self, filename, content):
+        filepath = os.path.join(self.basepath, filename)
+        self.assertEqual(self.obj.generate_str(filepath), content)
+
+    def test_1(self):
+        self.assertGenerate('parse_file_test3.kit', """AAA
+
+AAA
+<!--$aaa AAA-->
+<!--@include parse_file_test3-->
+<!--$aaa-->
+BBB
+
+AAA
+BBB
+""")
