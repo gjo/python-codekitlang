@@ -9,8 +9,9 @@ import unittest
 class ParseStringTestCase(unittest.TestCase):
 
     def setUp(self):
-        from ..compiler import parse_string
-        self.func = parse_string
+        from ..compiler import Compiler
+        self.obj = Compiler()
+        self.func = self.obj.parse_string
 
     def test_noop_1(self):
         ret = self.func('')

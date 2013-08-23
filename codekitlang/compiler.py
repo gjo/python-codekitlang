@@ -6,38 +6,6 @@ import re
 
 
 logger = logging.getLogger(__name__)
-special_comment_re = re.compile(
-    r'(?P<wrapper><!--\s*(?:'
-    r'@(?:(?i)(?:import|include))\s+(?P<filenames>.*?)'
-    r'|'
-    r'[@$](?P<variable>[a-zA-Z][^\s:=]*)\s*(?:[\s:=]\s*(?P<value>.*?))?'
-    r')-->)',
-    re.DOTALL | re.LOCALE | re.MULTILINE | re.UNICODE
-)
-
-
-def parse_string(s):
-    """
-    @type s: str (Python2.X unicode)
-    @rtype: [(str, str), ...]
-    """
-    parsed = []
-    pos = 0
-    for m in special_comment_re.finditer(s):
-        if m.start('wrapper') > pos:
-            parsed.append(('NOOP', s[pos:m.start('wrapper')]))
-        if m.group('filenames'):
-            for filename in m.group('filenames').split(','):
-                filename = filename.strip().strip('\'"')
-                parsed.append(('JUMP', filename))
-        elif m.group('value'):
-            value = m.group('value').strip()
-            parsed.append(('STOR', (m.group('variable'), value)))
-        else:  # m.group('variable')
-            parsed.append(('LOAD', m.group('variable')))
-        pos = m.end('wrapper')
-    parsed.append(('NOOP', s[pos:]))
-    return parsed
 
 
 def get_file_content(filepath, encoding_hints=None):
@@ -69,6 +37,15 @@ class VariableNotFoundError(CompileError):
 
 
 class Compiler(object):
+
+    SPECIAL_COMMENT_RE = re.compile(
+        r'(?P<wrapper><!--\s*(?:'
+        r'@(?:(?i)(?:import|include))\s+(?P<filenames>.*?)'
+        r'|'
+        r'[@$](?P<variable>[a-zA-Z][^\s:=]*)\s*(?:[\s:=]\s*(?P<value>.*?))?'
+        r')-->)',
+        re.DOTALL | re.LOCALE | re.MULTILINE | re.UNICODE
+    )
 
     def __init__(self, framework_paths=None):
         """
@@ -131,6 +108,29 @@ class Compiler(object):
             signature = None
         return signature
 
+    def parse_string(self, s):
+        """
+        @type s: str (Python2.X unicode)
+        @rtype: [(str, str), ...]
+        """
+        parsed = []
+        pos = 0
+        for m in self.SPECIAL_COMMENT_RE.finditer(s):
+            if m.start('wrapper') > pos:
+                parsed.append(('NOOP', s[pos:m.start('wrapper')]))
+            if m.group('filenames'):
+                for filename in m.group('filenames').split(','):
+                    filename = filename.strip().strip('\'"')
+                    parsed.append(('JUMP', filename))
+            elif m.group('value'):
+                value = m.group('value').strip()
+                parsed.append(('STOR', (m.group('variable'), value)))
+            else:  # m.group('variable')
+                parsed.append(('LOAD', m.group('variable')))
+            pos = m.end('wrapper')
+        parsed.append(('NOOP', s[pos:]))
+        return parsed
+
     def parse(self, filepath=None, filename=None, basepath=None):
         if filepath:
             filepath = os.path.realpath(filepath)
@@ -142,7 +142,7 @@ class Compiler(object):
         if signature:
             _, ext = os.path.splitext(filepath)
             encoding, s = get_file_content(filepath)
-            data = parse_string(s) if ext == '.kit' else [('NOOP', s)]
+            data = self.parse_string(s) if ext == '.kit' else [('NOOP', s)]
             self.parsed_caches[filepath] = dict(
                 signature=signature,
                 encoding=encoding,
