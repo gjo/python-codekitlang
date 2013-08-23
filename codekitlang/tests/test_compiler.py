@@ -4,6 +4,28 @@ import os
 import shutil
 import tempfile
 import unittest
+import mock
+
+
+class NormalizePathTestCase(unittest.TestCase):
+
+    def setUp(self):
+        from ..compiler import Compiler
+        self.obj = Compiler()
+        self.func = self.obj.normalize_path
+
+    def test_filepath_1(self):
+        self.assertEqual(self.func(filepath='hoge/fuga.txt'),
+                         os.path.join(os.getcwd(), 'hoge', 'fuga.txt'))
+
+    def test_filepath_2(self):
+        self.assertEqual(self.func(filepath='/hoge/fuga.txt'),
+                         '/hoge/fuga.txt')
+
+    @mock.patch('codekitlang.compiler.Compiler.resolve_path')
+    def test_filename_1(self, mock_resolve_path):
+        mock_resolve_path.return_value = 'MOCKED'
+        self.assertEqual(self.func(filename='hoge', basepath='fuga'), 'MOCKED')
 
 
 class ParseStrTestCase(unittest.TestCase):
