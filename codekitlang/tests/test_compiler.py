@@ -222,3 +222,66 @@ value
                           ('NOOP', ' post')], ret)
 
 
+class ParseFileTestCase(unittest.TestCase):
+
+    def setUp(self):
+        from ..compiler import Compiler
+        self.dp = os.path.join(os.path.dirname(__file__), 'data')
+        self.basepath = os.path.join(self.dp, 'b')
+        self.obj = Compiler(framework_paths=(
+            os.path.join(self.dp, 'f1'),
+            os.path.join(self.dp, 'f2'),
+        ))
+        self.func = self.obj.parse_file
+
+    def assertParsed(self, filename):
+        filepath = os.path.join(self.basepath, filename)
+        self.assertEqual(self.obj.parse_file(filepath),
+                         os.path.realpath(filepath))
+
+    def test_1(self):
+        self.assertParsed('file1.html')
+        self.assertEqual(
+            self.obj.parsed_caches[
+                os.path.join(self.basepath, 'file1.html')
+            ]['data'],
+            [('NOOP', 'file1.html\n')]
+        )
+
+    def test_2(self):
+        self.assertParsed('parse_file_test2.html')
+        self.assertEqual(
+            self.obj.parsed_caches[
+                os.path.join(self.basepath, 'parse_file_test2.html')
+            ]['data'],
+            [('NOOP', 'AAA\n'
+                      '<!--$aaa AAA-->\n'
+                      '<!--@include parse_file_test3-->\n'
+                      '<!--$aaa-->\n'
+                      'BBB\n')]
+        )
+
+    def test_3(self):
+        self.assertParsed('parse_file_test3.kit')
+        self.assertEqual(
+            self.obj.parsed_caches[
+                os.path.join(self.basepath, 'parse_file_test2.html')
+            ]['data'],
+            [('NOOP', 'AAA\n'
+                      '<!--$aaa AAA-->\n'
+                      '<!--@include parse_file_test3-->\n'
+                      '<!--$aaa-->\n'
+                      'BBB\n')]
+        )
+        self.assertEqual(
+            self.obj.parsed_caches[
+                os.path.join(self.basepath, 'parse_file_test3.kit')
+            ]['data'],
+            [('NOOP', 'AAA\n'),
+             ('STOR', ('aaa', 'AAA')),
+             ('NOOP', '\n'),
+             ('JUMP', os.path.join(self.dp, 'b', 'parse_file_test2.html')),
+             ('NOOP', '\n'),
+             ('LOAD', 'aaa'),
+             ('NOOP', '\nBBB\n')]
+        )
