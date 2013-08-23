@@ -6,12 +6,12 @@ import tempfile
 import unittest
 
 
-class ParseStringTestCase(unittest.TestCase):
+class ParseStrTestCase(unittest.TestCase):
 
     def setUp(self):
         from ..compiler import Compiler
         self.obj = Compiler()
-        self.func = self.obj.parse_string
+        self.func = self.obj.parse_str
 
     def test_noop_1(self):
         ret = self.func('')

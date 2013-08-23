@@ -91,6 +91,15 @@ class Compiler(object):
                     return filepath
         return None
 
+    def normalize_path(self, filepath=None, filename=None, basepath=None):
+        if filepath:
+            filepath = os.path.realpath(filepath)
+        elif filename and basepath:
+            filepath = self.resolve_path(filename, basepath)
+        else:
+            pass  # TODO: handle assert
+        return filepath
+
     def get_new_signature(self, filepath):
         """
         @param filepath: `realpath`ed full path of file
@@ -108,7 +117,7 @@ class Compiler(object):
             signature = None
         return signature
 
-    def parse_string(self, s):
+    def parse_str(self, s):
         """
         @type s: str (Python2.X unicode)
         @rtype: [(str, str), ...]
@@ -131,18 +140,13 @@ class Compiler(object):
         parsed.append(('NOOP', s[pos:]))
         return parsed
 
-    def parse(self, filepath=None, filename=None, basepath=None):
-        if filepath:
-            filepath = os.path.realpath(filepath)
-        elif filename and basepath:
-            filepath = self.resolve_path(filename, basepath)
-        else:
-            return None  # TODO: handle assert
+    def parse_file(self, filepath=None, filename=None, basepath=None):
+        filepath = self.normalize_path(filepath, filename, basepath)
         signature = self.get_new_signature(filepath)
         if signature:
             _, ext = os.path.splitext(filepath)
             encoding, s = get_file_content(filepath)
-            data = self.parse_string(s) if ext == '.kit' else [('NOOP', s)]
+            data = self.parse_str(s) if ext == '.kit' else [('NOOP', s)]
             self.parsed_caches[filepath] = dict(
                 signature=signature,
                 encoding=encoding,
@@ -151,7 +155,7 @@ class Compiler(object):
             for i in range(len(data)):
                 command, subfilename = data[i]
                 if command == 'JUMP':
-                    subfilepath = self.parse(
+                    subfilepath = self.parse_file(
                         filename=subfilename,
                         basepath=os.path.dirname(filepath)
                     )
@@ -164,7 +168,7 @@ class Compiler(object):
             context = dict()
         compiled = []
         if filepath not in self.parsed_caches:
-            filepath = self.parse(filepath)
+            filepath = self.parse_file(filepath=filepath)
         cache = self.parsed_caches[filepath]
         for command, args in cache['data']:
             if command == 'NOOP':
