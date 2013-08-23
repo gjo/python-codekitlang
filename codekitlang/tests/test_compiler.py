@@ -22,6 +22,10 @@ class NormalizePathTestCase(unittest.TestCase):
         self.assertEqual(self.func(filepath='/hoge/fuga.txt'),
                          '/hoge/fuga.txt')
 
+    def test_filepath_3(self):
+        self.assertEqual(self.func(filepath='/hoge/dum/../fuga.txt'),
+                         '/hoge/fuga.txt')
+
     @mock.patch('codekitlang.compiler.Compiler.resolve_path')
     def test_filename_1(self, mock_resolve_path):
         mock_resolve_path.return_value = 'MOCKED'
