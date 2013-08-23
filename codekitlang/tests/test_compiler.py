@@ -7,6 +7,79 @@ import unittest
 import mock
 
 
+class ResolveFilePathTestCase(unittest.TestCase):
+
+    def setUp(self):
+        from ..compiler import Compiler
+        self.dp = os.path.join(os.path.dirname(__file__), 'data')
+        self.obj = Compiler(framework_paths=(
+            os.path.join(self.dp, 'f1'),
+            os.path.join(self.dp, 'f2'),
+        ))
+        self.func = self.obj.resolve_path
+
+    def assertFound(self, src, dest, msg=None):
+        self.assertEqual(
+            self.func(src, os.path.join(self.dp, 'b')),
+            os.path.realpath(os.path.join(self.dp, *dest)),
+            msg=msg,
+        )
+
+    def assertNotFound(self, src, msg=None):
+        self.assertIsNone(self.func(src, os.path.join(self.dp, 'b')), msg=msg)
+
+    def test(self):
+        self.assertFound('file1.html', ('b', 'file1.html'))
+        self.assertNotFound('file1')
+        self.assertNotFound('file2.html')
+        self.assertFound('file2', ('b', 'file2.kit'))
+        self.assertFound('file2.kit', ('b', 'file2.kit'))
+        self.assertFound('file3', ('b', '_file3.kit'))
+        self.assertFound('file3.kit', ('b', '_file3.kit'))
+        self.assertFound('_file3', ('b', '_file3.kit'))
+        self.assertFound('_file3.kit', ('b', '_file3.kit'))
+
+        self.assertFound('sub/file4.html', ('b', 'sub', 'file4.html'))
+        self.assertNotFound('sub/file4')
+        self.assertNotFound('sub/file5.html')
+        self.assertFound('sub/file5', ('b', 'sub', 'file5.kit'))
+        self.assertFound('sub/file5.kit', ('b', 'sub', 'file5.kit'))
+        self.assertFound('sub/file6', ('b', 'sub', '_file6.kit'))
+        self.assertFound('sub/file6.kit', ('b', 'sub', '_file6.kit'))
+        self.assertFound('sub/_file6', ('b', 'sub', '_file6.kit'))
+        self.assertFound('sub/_file6.kit', ('b', 'sub', '_file6.kit'))
+
+        self.assertNotFound('file7')
+        self.assertNotFound('file7.html')
+        self.assertNotFound('file8.html')
+        self.assertFound('file8', ('f1', 'file8.kit'))
+        self.assertFound('file8.kit', ('f1', 'file8.kit'))
+        self.assertFound('file9', ('f1', '_file9.kit'))
+        self.assertFound('file9.kit', ('f1', '_file9.kit'))
+        self.assertFound('_file9', ('f1', '_file9.kit'))
+        self.assertFound('_file9.kit', ('f1', '_file9.kit'))
+
+        self.assertNotFound('sub/file10')
+        self.assertNotFound('sub/file10.html')
+        self.assertNotFound('sub/file11.html')
+        self.assertFound('sub/file11', ('f1', 'sub', 'file11.kit'))
+        self.assertFound('sub/file11.kit', ('f1', 'sub', 'file11.kit'))
+        self.assertFound('sub/file12', ('f1', 'sub', '_file12.kit'))
+        self.assertFound('sub/file12.kit', ('f1', 'sub', '_file12.kit'))
+        self.assertFound('sub/_file12', ('f1', 'sub', '_file12.kit'))
+        self.assertFound('sub/_file12.kit', ('f1', 'sub', '_file12.kit'))
+
+        self.assertNotFound('file13')
+        self.assertNotFound('file13.html')
+        self.assertNotFound('file14.html')
+        self.assertFound('file14', ('f2', 'file14.kit'))
+        self.assertFound('file14.kit', ('f2', 'file14.kit'))
+        self.assertFound('file15', ('f2', '_file15.kit'))
+        self.assertFound('file15.kit', ('f2', '_file15.kit'))
+        self.assertFound('_file15', ('f2', '_file15.kit'))
+        self.assertFound('_file15.kit', ('f2', '_file15.kit'))
+
+
 class NormalizePathTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -149,108 +222,3 @@ value
                           ('NOOP', ' post')], ret)
 
 
-class ResolveFilePathTestCase(unittest.TestCase):
-
-    def setUp(self):
-        from ..compiler import Compiler
-        self.tempdir = tempfile.mkdtemp()
-        os.makedirs(os.path.join(self.tempdir, 'base', 'subdir'))
-        os.makedirs(os.path.join(self.tempdir, 'frameworks', '1', 'subdir'))
-        os.makedirs(os.path.join(self.tempdir, 'frameworks', '2'))
-        self.obj = Compiler(framework_paths=(
-            os.path.join(self.tempdir, 'frameworks', '1'),
-            os.path.join(self.tempdir, 'frameworks', '2'),
-        ))
-        self.func = self.obj.resolve_path
-
-        def touch(*p):
-            open(os.path.join(self.tempdir, *p), 'wb').write('')
-
-        touch('base', 'file1.html')
-        touch('base', 'file2.kit')
-        touch('base', '_file3.kit')
-        touch('base', 'subdir', 'file4.html')
-        touch('base', 'subdir', 'file5.kit')
-        touch('base', 'subdir', '_file6.kit')
-        touch('frameworks', '1', 'file7.html')
-        touch('frameworks', '1', 'file8.kit')
-        touch('frameworks', '1', '_file9.kit')
-        touch('frameworks', '1', 'subdir', 'file10.html')
-        touch('frameworks', '1', 'subdir', 'file11.kit')
-        touch('frameworks', '1', 'subdir', '_file12.kit')
-        touch('frameworks', '2', 'file13.html')
-        touch('frameworks', '2', 'file14.kit')
-        touch('frameworks', '2', '_file15.kit')
-        return
-
-    def tearDown(self):
-        if hasattr(self, 'tempdir') and os.path.exists(self.tempdir):
-            shutil.rmtree(self.tempdir, ignore_errors=True)
-
-    def assertFound(self, src, dest, msg=None):
-        self.assertEqual(
-            self.func(src, os.path.join(self.tempdir, 'base')),
-            os.path.realpath(os.path.join(self.tempdir, *dest)),
-            msg=msg,
-        )
-
-    def assertNotFound(self, src, msg=None):
-        self.assertIsNone(self.func(src, os.path.join(self.tempdir, 'base')),
-                          msg=msg)
-
-    def test(self):
-        self.assertFound('file1.html', ('base', 'file1.html'))
-        self.assertNotFound('file1')
-        self.assertNotFound('file2.html')
-        self.assertFound('file2', ('base', 'file2.kit'))
-        self.assertFound('file2.kit', ('base', 'file2.kit'))
-        self.assertFound('file3', ('base', '_file3.kit'))
-        self.assertFound('file3.kit', ('base', '_file3.kit'))
-        self.assertFound('_file3', ('base', '_file3.kit'))
-        self.assertFound('_file3.kit', ('base', '_file3.kit'))
-
-        self.assertFound('subdir/file4.html', ('base', 'subdir', 'file4.html'))
-        self.assertNotFound('subdir/file4')
-        self.assertNotFound('subdir/file5.html')
-        self.assertFound('subdir/file5', ('base', 'subdir', 'file5.kit'))
-        self.assertFound('subdir/file5.kit', ('base', 'subdir', 'file5.kit'))
-        self.assertFound('subdir/file6', ('base', 'subdir', '_file6.kit'))
-        self.assertFound('subdir/file6.kit', ('base', 'subdir', '_file6.kit'))
-        self.assertFound('subdir/_file6', ('base', 'subdir', '_file6.kit'))
-        self.assertFound('subdir/_file6.kit', ('base', 'subdir', '_file6.kit'))
-
-        self.assertNotFound('file7')
-        self.assertNotFound('file7.html')
-        self.assertNotFound('file8.html')
-        self.assertFound('file8', ('frameworks', '1', 'file8.kit'))
-        self.assertFound('file8.kit', ('frameworks', '1', 'file8.kit'))
-        self.assertFound('file9', ('frameworks', '1', '_file9.kit'))
-        self.assertFound('file9.kit', ('frameworks', '1', '_file9.kit'))
-        self.assertFound('_file9', ('frameworks', '1', '_file9.kit'))
-        self.assertFound('_file9.kit', ('frameworks', '1', '_file9.kit'))
-
-        self.assertNotFound('subdir/file10')
-        self.assertNotFound('subdir/file10.html')
-        self.assertNotFound('subdir/file11.html')
-        self.assertFound('subdir/file11',
-                         ('frameworks', '1', 'subdir', 'file11.kit'))
-        self.assertFound('subdir/file11.kit',
-                         ('frameworks', '1', 'subdir', 'file11.kit'))
-        self.assertFound('subdir/file12',
-                         ('frameworks', '1', 'subdir', '_file12.kit'))
-        self.assertFound('subdir/file12.kit',
-                         ('frameworks', '1', 'subdir', '_file12.kit'))
-        self.assertFound('subdir/_file12',
-                         ('frameworks', '1', 'subdir', '_file12.kit'))
-        self.assertFound('subdir/_file12.kit',
-                         ('frameworks', '1', 'subdir', '_file12.kit'))
-
-        self.assertNotFound('file13')
-        self.assertNotFound('file13.html')
-        self.assertNotFound('file14.html')
-        self.assertFound('file14', ('frameworks', '2', 'file14.kit'))
-        self.assertFound('file14.kit', ('frameworks', '2', 'file14.kit'))
-        self.assertFound('file15', ('frameworks', '2', '_file15.kit'))
-        self.assertFound('file15.kit', ('frameworks', '2', '_file15.kit'))
-        self.assertFound('_file15', ('frameworks', '2', '_file15.kit'))
-        self.assertFound('_file15.kit', ('frameworks', '2', '_file15.kit'))
