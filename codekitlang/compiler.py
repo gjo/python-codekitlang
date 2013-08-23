@@ -158,11 +158,10 @@ class Compiler(object):
                     data[i] = ('JUMP', subfilepath)
         return filepath
 
-    def generate(self, filepath):
+    def generate(self, filepath, context=None):
         filepath = os.path.realpath(filepath)
-        return ''.join(self._generate(filepath, dict()))
-
-    def _generate(self, filepath, context):
+        if context is None:
+            context = dict()
         compiled = []
         if filepath not in self.parsed_caches:
             filepath = self.parse(filepath)
@@ -175,5 +174,8 @@ class Compiler(object):
             elif command == 'LOAD':
                 compiled.append(context[args])
             elif command == 'JUMP':
-                compiled.extend(self._generate(args, context.copy()))
+                compiled.extend(self.generate(args, context.copy()))
         return compiled
+
+    def generate_str(self, filepath):
+        return ''.join(self.generate(filepath))
