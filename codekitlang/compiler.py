@@ -8,11 +8,11 @@ import re
 logger = logging.getLogger(__name__)
 special_comment_re = re.compile(
     r'(?P<wrapper><!--\s*(?:'
-    r'@(?:import|include)\s+(?P<filenames>.*?)'
+    r'@(?:(?i)(?:import|include))\s+(?P<filenames>.*?)'
     r'|'
     r'[@$](?P<variable>[a-zA-Z][^\s:=]*)\s*(?:[\s:=]\s*(?P<value>.*?))?'
     r')-->)',
-    re.DOTALL | re.IGNORECASE | re.LOCALE | re.MULTILINE | re.UNICODE
+    re.DOTALL | re.LOCALE | re.MULTILINE | re.UNICODE
 )
 
 
