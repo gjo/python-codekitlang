@@ -32,6 +32,32 @@ class NormalizePathTestCase(unittest.TestCase):
         self.assertEqual(self.func(filename='hoge', basepath='fuga'), 'MOCKED')
 
 
+class getNewSignatureTestCase(unittest.TestCase):
+
+    def setUp(self):
+        from ..compiler import Compiler
+        self.obj = Compiler()
+        self.func = self.obj.get_new_signature
+        self.tempdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        if hasattr(self, 'tempdir') and os.path.exists(self.tempdir):
+            shutil.rmtree(self.tempdir, ignore_errors=True)
+
+    def test(self):
+        fn = os.path.join(self.tempdir, 'testfile')
+        touch = lambda x: open(fn, 'wb').write(x)
+        touch('')
+        ret1 = self.func(fn)
+        self.assertIsNotNone(ret1)
+        self.obj.parsed_caches[fn] = {'signature': ret1}
+        self.assertIsNone(self.func(fn))
+        touch('A')
+        ret2 = self.func(fn)
+        self.assertIsNotNone(ret2)
+        self.assertNotEqual(ret1, ret2)
+
+
 class ParseStrTestCase(unittest.TestCase):
 
     def setUp(self):
