@@ -96,15 +96,19 @@ value
                           ('NOOP', ' post')], ret)
 
 
-class GetFilePathTestCase(unittest.TestCase):
+class ResolveFilePathTestCase(unittest.TestCase):
 
     def setUp(self):
-        from ..compiler import get_filepath
-        self.func = get_filepath
+        from ..compiler import Compiler
         self.tempdir = tempfile.mkdtemp()
         os.makedirs(os.path.join(self.tempdir, 'base', 'subdir'))
         os.makedirs(os.path.join(self.tempdir, 'frameworks', '1', 'subdir'))
         os.makedirs(os.path.join(self.tempdir, 'frameworks', '2'))
+        self.obj = Compiler(framework_paths=(
+            os.path.join(self.tempdir, 'frameworks', '1'),
+            os.path.join(self.tempdir, 'frameworks', '2'),
+        ))
+        self.func = self.obj.resolve_path
 
         def touch(*p):
             open(os.path.join(self.tempdir, *p), 'wb').write('')
@@ -132,26 +136,14 @@ class GetFilePathTestCase(unittest.TestCase):
 
     def assertFound(self, src, dest, msg=None):
         self.assertEqual(
-            self.func(
-                src,
-                os.path.join(self.tempdir, 'base'),
-                (os.path.join(self.tempdir, 'frameworks', '1'),
-                 os.path.join(self.tempdir, 'frameworks', '2')),
-            ),
-            os.path.join(self.tempdir, *dest),
+            self.func(src, os.path.join(self.tempdir, 'base')),
+            os.path.realpath(os.path.join(self.tempdir, *dest)),
             msg=msg,
         )
 
     def assertNotFound(self, src, msg=None):
-        self.assertIsNone(
-            self.func(
-                src,
-                os.path.join(self.tempdir, 'base'),
-                (os.path.join(self.tempdir, 'frameworks', '1'),
-                 os.path.join(self.tempdir, 'frameworks', '2')),
-            ),
-            msg=msg,
-        )
+        self.assertIsNone(self.func(src, os.path.join(self.tempdir, 'base')),
+                          msg=msg)
 
     def test(self):
         self.assertFound('file1.html', ('base', 'file1.html'))

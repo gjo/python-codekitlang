@@ -16,22 +16,6 @@ special_comment_re = re.compile(
 )
 
 
-class CompileError(Exception):
-    pass
-
-
-class FileNotFoundError(CompileError):
-    pass
-
-
-class UnknownEncodingError(CompileError):
-    pass
-
-
-class VariableNotFoundError(CompileError):
-    pass
-
-
 def parse_string(s):
     """
     @type s: str (Python2.X unicode)
@@ -56,60 +40,137 @@ def parse_string(s):
     return parsed
 
 
-def get_filepath(filename, base_path, framework_paths):
-    """
-    @type filename: str
-    @type base_path: str
-    @type framework_paths: [str, ...]
-    @rtype: str
-    """
-    _, ext = os.path.splitext(filename)
-    if not ext:
-        filename += '.kit'
-        ext = '.kit'
-    if ext == '.kit':
-        prefixes = ('', '_')
-        paths = (base_path,) + tuple(framework_paths)
-    else:
-        prefixes = ('',)
-        paths = (base_path,)
-    for prefix in prefixes:
-        for path in paths:
-            filepath = os.path.abspath(os.path.join(path, filename))
-            basename = os.path.basename(filename)
-            if prefix and not basename.startswith(prefix):
-                filepath = os.path.join(
-                    os.path.dirname(filepath),
-                    prefix + os.path.basename(filename)
-                )
-            if os.path.exists(filepath):
-                logger.debug('Using %s for %s', filepath, filename)
-                return filepath
-    return None
-
-
-def bytes_to_str(b, encoding_hints=None):
-    """
-    @type b: bytes (Python2.X str)
-    @type encoding_hints: [str, ...]
-    @rtype: (str, [(str, str), ...])
-    """
-    # TODO: not implemented now
-    return 'utf-8', unicode(b, encoding='utf-8', errors='strict')
-
-
 def get_file_content(filepath, encoding_hints=None):
     """
     @type filepath: str
     @type encoding_hints: [str, ...]
-    @rtype: str
+    @rtype: (str, str)
     """
     with open(filepath, 'rb') as fp:
-        b = fp.readall()
-    return bytes_to_str(b, encoding_hints)
+        b = fp.read()
+    # TODO: not implemented encoding detection yet
+    return 'utf-8', unicode(b, encoding='utf-8', errors='replace')
 
 
-def parse_file(filename, base_path, framework_paths, encoding_hints=None):
-    filepath = get_filepath(filename, base_path, framework_paths)
-    encoding, s = get_file_content(filepath, encoding_hints)
-    return filepath, encoding, parse_string(s)
+class CompileError(Exception):
+    pass
+
+
+class FileNotFoundError(CompileError):
+    pass
+
+
+class UnknownEncodingError(CompileError):
+    pass
+
+
+class VariableNotFoundError(CompileError):
+    pass
+
+
+class Compiler(object):
+
+    def __init__(self, framework_paths=None):
+        """
+        @param framework_paths: [str, ...]
+        """
+        if framework_paths is None:
+            self.framework_paths = tuple()
+        elif isinstance(framework_paths, tuple):
+            self.framework_paths = framework_paths
+        elif isinstance(framework_paths, basestring):
+            self.framework_paths = (framework_paths,)
+        else:
+            self.framework_paths = tuple(framework_paths)
+        self.parsed_caches = dict()
+
+    def resolve_path(self, filename, base_path):
+        """
+        @type filename: str
+        @type base_path: str
+        @rtype: str
+        """
+        _, ext = os.path.splitext(filename)
+        if not ext:
+            filename += '.kit'
+            ext = '.kit'
+        if ext == '.kit':
+            prefixes = ('', '_')
+            paths = (base_path,) + self.framework_paths
+        else:
+            prefixes = ('',)
+            paths = (base_path,)
+        for prefix in prefixes:
+            for path in paths:
+                filepath = os.path.realpath(os.path.join(path, filename))
+                basename = os.path.basename(filename)
+                if prefix and not basename.startswith(prefix):
+                    filepath = os.path.join(
+                        os.path.dirname(filepath),
+                        prefix + os.path.basename(filename)
+                    )
+                if os.path.exists(filepath):
+                    logger.debug('Using %s for %s', filepath, filename)
+                    return filepath
+        return None
+
+    def get_new_signature(self, filepath):
+        """
+        @type filepath: str
+        @rtye: (int, int, int)
+        """
+        new_signature = None
+        if filepath in self.parsed_caches:
+            cache = self.parsed_caches[filepath]
+            stat = os.stat(filepath)
+            signature = stat.st_ino, stat.st_mtime, stat.st_mtime
+            if cache['signature'] == signature:
+                new_signature = signature
+        return new_signature
+
+    def parse(self, filepath=None, filename=None, basepath=None):
+        if filepath:
+            filepath = os.path.realpath(filepath)
+        elif filename and basepath:
+            filepath = self.resolve_path(filename, basepath)
+        else:
+            return None  # TODO: handle assert
+        signature = self.get_new_signature(filepath)
+        if not signature:
+            _, ext = os.path.splitext(filepath)
+            encoding, s = get_file_content(filepath)
+            data = parse_string(s) if ext == '.kit' else [('NOOP', s)]
+            self.parsed_caches[filepath] = dict(
+                signature=signature,
+                encoding=encoding,
+                data=data,
+            )
+            for i in range(len(data)):
+                command, subfilename = data[i]
+                if command == 'JUMP':
+                    subfilepath = self.parse(
+                        filename=subfilename,
+                        basepath=os.path.dirname(filepath)
+                    )
+                    data[i] = ('JUMP', subfilepath)
+        return filepath
+
+    def generate(self, filepath):
+        filepath = os.path.realpath(filepath)
+        return ''.join(self._generate(filepath, dict()))
+
+    def _generate(self, filepath, context):
+        compiled = []
+        if filepath not in self.parsed_caches:
+            filepath = self.parse(filepath)
+        cache = self.parsed_caches[filepath]
+        for command, args in cache['data']:
+            if command == 'NOOP':
+                compiled.append(args)
+            elif command == 'STOR':
+                context[args[0]] = args[1]
+            elif command == 'LOAD':
+                compiled.append(context[args])
+            elif command == 'JUMP':
+                compiled.extend(self._generate(args, context.copy()))
+        return compiled
