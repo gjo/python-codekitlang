@@ -7,6 +7,29 @@ import unittest
 import mock
 
 
+class InitTestCase(unittest.TestCase):
+
+    def test_1(self):
+        from ..compiler import Compiler
+        obj = Compiler()
+        self.assertEqual(obj.framework_paths, ())
+
+    def test_2(self):
+        from ..compiler import Compiler
+        obj = Compiler(framework_paths='TESTPATH')
+        self.assertEqual(obj.framework_paths, ('TESTPATH',))
+
+    def test_3(self):
+        from ..compiler import Compiler
+        obj = Compiler(framework_paths=['TESTPATH'])
+        self.assertEqual(obj.framework_paths, ('TESTPATH',))
+
+    def test_4(self):
+        from ..compiler import Compiler
+        obj = Compiler(framework_paths=['TESTPATH1', 'TESTPATH2'])
+        self.assertEqual(obj.framework_paths, ('TESTPATH1', 'TESTPATH2'))
+
+
 class ResolveFilePathTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -105,7 +128,7 @@ class NormalizePathTestCase(unittest.TestCase):
         self.assertEqual(self.func(filename='hoge', basepath='fuga'), 'MOCKED')
 
 
-class getNewSignatureTestCase(unittest.TestCase):
+class GetNewSignatureTestCase(unittest.TestCase):
 
     def setUp(self):
         from ..compiler import Compiler
