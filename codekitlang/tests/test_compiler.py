@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import difflib
 import os
 import shutil
 import tempfile
@@ -9,22 +10,22 @@ import mock
 
 class InitTestCase(unittest.TestCase):
 
-    def test_1(self):
+    def test_fp_none(self):
         from ..compiler import Compiler
         obj = Compiler()
         self.assertEqual(obj.framework_paths, ())
 
-    def test_2(self):
+    def test_fp_str(self):
         from ..compiler import Compiler
         obj = Compiler(framework_paths='TESTPATH')
         self.assertEqual(obj.framework_paths, ('TESTPATH',))
 
-    def test_3(self):
+    def test_fp_list1(self):
         from ..compiler import Compiler
         obj = Compiler(framework_paths=['TESTPATH'])
         self.assertEqual(obj.framework_paths, ('TESTPATH',))
 
-    def test_4(self):
+    def test_fp_list2(self):
         from ..compiler import Compiler
         obj = Compiler(framework_paths=['TESTPATH1', 'TESTPATH2'])
         self.assertEqual(obj.framework_paths, ('TESTPATH1', 'TESTPATH2'))
@@ -110,20 +111,20 @@ class NormalizePathTestCase(unittest.TestCase):
         self.obj = Compiler()
         self.func = self.obj.normalize_path
 
-    def test_filepath_1(self):
+    def test_filepath_relative(self):
         self.assertEqual(self.func(filepath='hoge/fuga.txt'),
                          os.path.join(os.getcwd(), 'hoge', 'fuga.txt'))
 
-    def test_filepath_2(self):
+    def test_filepath_absolute(self):
         self.assertEqual(self.func(filepath='/hoge/fuga.txt'),
                          '/hoge/fuga.txt')
 
-    def test_filepath_3(self):
+    def test_filepath_traversal(self):
         self.assertEqual(self.func(filepath='/hoge/dum/../fuga.txt'),
                          '/hoge/fuga.txt')
 
     @mock.patch('codekitlang.compiler.Compiler.resolve_path')
-    def test_filename_1(self, mock_resolve_path):
+    def test_filename(self, mock_resolve_path):
         mock_resolve_path.return_value = 'MOCKED'
         self.assertEqual(self.func(filename='hoge', basepath='fuga'), 'MOCKED')
 
@@ -259,8 +260,7 @@ class ParseFileTestCase(unittest.TestCase):
 
     def assertParsed(self, filename):
         filepath = os.path.join(self.basepath, filename)
-        self.assertEqual(self.obj.parse_file(filepath),
-                         os.path.realpath(filepath))
+        self.assertEqual(self.func(filepath), os.path.realpath(filepath))
 
     def test_1(self):
         self.assertParsed('file1.html')
@@ -310,25 +310,24 @@ class ParseFileTestCase(unittest.TestCase):
         )
 
 
-class GenerateStrTestCase(unittest.TestCase):
+class GenerateToStrTestCase(unittest.TestCase):
 
     def setUp(self):
         from ..compiler import Compiler
-
         self.dp = os.path.join(os.path.dirname(__file__), 'data')
         self.basepath = os.path.join(self.dp, 'b')
         self.obj = Compiler(framework_paths=(
             os.path.join(self.dp, 'f1'),
             os.path.join(self.dp, 'f2'),
         ))
-        self.func = self.obj.generate_str
+        self.func = self.obj.generate_to_str
 
-    def assertGenerate(self, filename, content):
+    def assertGenerateToStr(self, filename, content):
         filepath = os.path.join(self.basepath, filename)
-        self.assertEqual(self.obj.generate_str(filepath), content)
+        self.assertEqual(self.func(filepath), content)
 
     def test_1(self):
-        self.assertGenerate('parse_file_test3.kit', """AAA
+        self.assertGenerateToStr('parse_file_test3.kit', """AAA
 
 AAA
 <!--$aaa AAA-->
@@ -339,3 +338,40 @@ BBB
 AAA
 BBB
 """)
+
+
+class GenerateToFileTestCase(unittest.TestCase):
+
+    def setUp(self):
+        from ..compiler import Compiler
+        self.dp = os.path.join(os.path.dirname(__file__), 'data')
+        self.basepath = os.path.join(self.dp, 'b')
+        self.destpath = os.path.join(self.dp, 'd')
+        self.obj = Compiler(framework_paths=(
+            os.path.join(self.dp, 'f1'),
+            os.path.join(self.dp, 'f2'),
+        ))
+        self.func = self.obj.generate_to_file
+        self.tempdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        if hasattr(self, 'tempdir') and os.path.exists(self.tempdir):
+            shutil.rmtree(self.tempdir, ignore_errors=True)
+
+    def assertGenerateToFile(self, dest, src):
+        dest_write_path = os.path.join(self.tempdir, dest)
+        dest_path = os.path.join(self.destpath, dest)
+        src_path = os.path.join(self.basepath, src)
+
+        self.func(dest_write_path, src_path)
+        self.assertTrue(os.path.exists(dest_write_path))
+
+        with open(dest_path, 'rb') as fp:
+            forecast = fp.read()
+        with open(dest_write_path, 'rb') as fp:
+            actual = fp.read()
+        self.assertListEqual(list(difflib.unified_diff(forecast, actual)), [])
+
+    def test(self):
+        self.assertGenerateToFile('dd/parse_file_test3.html',
+                                  'parse_file_test3.kit')

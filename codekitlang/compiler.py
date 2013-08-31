@@ -162,7 +162,7 @@ class Compiler(object):
                     data[i] = ('JUMP', subfilepath)
         return filepath
 
-    def generate(self, filepath, context=None):
+    def generate_to_list(self, filepath, context=None):
         filepath = os.path.realpath(filepath)
         if context is None:
             context = dict()
@@ -178,8 +178,18 @@ class Compiler(object):
             elif command == 'LOAD':
                 compiled.append(context[args])
             elif command == 'JUMP':
-                compiled.extend(self.generate(args, context.copy()))
+                compiled.extend(self.generate_to_list(args, context.copy()))
         return compiled
 
-    def generate_str(self, filepath):
-        return ''.join(self.generate(filepath))
+    def generate_to_str(self, filepath):
+        return ''.join(self.generate_to_list(filepath))
+
+    def generate_to_file(self, dest, src):
+        dest = os.path.realpath(dest)
+        d = os.path.dirname(dest)
+        if not os.path.exists(d):
+            os.makedirs(d)
+        s = self.generate_to_str(src)
+        with open(dest, 'wb') as fp:
+            fp.write(s)
+        return
