@@ -1,1 +1,1 @@
-recursive-include codekitlang/tests *
+recursive-include codekitlang/tests/data *.kit *.html

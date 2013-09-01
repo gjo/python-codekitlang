@@ -7,14 +7,29 @@ from setuptools import setup, find_packages
 setup(
     name='CodeKitLang',
     version='0.1dev',
+    description='CodeKit Language Compiler, Python implementation',
     author='gjo',
     author_email='gjo.ext@gmail.com',
+    url='https://github.com/gjo/python-codekitlang',
     license='BSD',
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    entry_points="""
-    [console_scripts]
-    pykitlangc = codekitlang.command:main
-    """,
+    install_requires=('setuptools', 'mock',),
+    entry_points={
+        'console_scripts': (
+            'pykitlangc = codekitlang.command:main',
+        ),
+    },
+    classifiers=[
+        'Development Status:: 4 - Beta',
+        'Environment :: Console',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2.7',
+        'Topic :: Internet :: WWW/HTTP :: Site Management',
+        'Topic :: Software Development :: Code Generators'
+        'Topic :: Text Processing :: Markup :: HTML',
+    ],
 )
