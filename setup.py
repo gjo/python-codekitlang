@@ -32,7 +32,7 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
         'Topic :: Internet :: WWW/HTTP :: Site Management',
-        'Topic :: Software Development :: Code Generators'
+        'Topic :: Software Development :: Code Generators',
         'Topic :: Text Processing :: Markup :: HTML',
     ],
 )

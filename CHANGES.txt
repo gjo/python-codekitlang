@@ -4,6 +4,13 @@ Change History
 0.2 - Unlereased
 ----------------
 
+0.1.2 - 2013-09-01
+------------------
+
+- Not Changed.
+
+- Fixes typo in classifiers.
+
 0.1.1 - 2013-09-01
 ------------------
 
