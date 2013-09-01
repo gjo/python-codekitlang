@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='CodeKitLang',
-    version='0.1dev',
+    version='0.1',
     description='CodeKit Language Compiler, Python implementation',
     long_description='\n\n'.join([
         open('README.rst').read(),
