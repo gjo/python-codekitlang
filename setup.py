@@ -12,7 +12,7 @@ setup(
         open('README.rst').read(),
         open('CHANGES.txt').read(),
     ]),
-    author='OCHIAI, Goji',
+    author='OCHIAI, Gouji',
     author_email='gjo.ext@gmail.com',
     url='https://github.com/gjo/python-codekitlang',
     license='BSD',

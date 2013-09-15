@@ -4,6 +4,13 @@ Change History
 0.2 - Unlereased
 ----------------
 
+0.1.3 - 2013-09-15
+------------------
+
+- Not Changed.
+
+- Fixes typo in copying and MANIFEST
+
 0.1.2 - 2013-09-01
 ------------------
 
