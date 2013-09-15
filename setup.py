@@ -6,13 +6,13 @@ from setuptools import setup, find_packages
 
 setup(
     name='CodeKitLang',
-    version='0.1.2',
+    version='0.1.3',
     description='CodeKit Language Compiler, Python implementation',
     long_description='\n\n'.join([
         open('README.rst').read(),
         open('CHANGES.txt').read(),
     ]),
-    author='OCHIAI, Goji',
+    author='OCHIAI, Gouji',
     author_email='gjo.ext@gmail.com',
     url='https://github.com/gjo/python-codekitlang',
     license='BSD',
