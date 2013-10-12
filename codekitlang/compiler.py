@@ -1,10 +1,30 @@
 # -*- coding: utf-8 -*-
 
+import collections
 import logging
 import os
 import re
 
 
+Fragment = collections.namedtuple(
+    'Fragment',
+    (
+        'pos',  # fpos of fragment start
+        'line',  # line number of fragment
+        'column',  # column number of fragment
+        'command',  # NOOP, STOR, LOAD, JUMP
+        'args',
+    ),
+)
+NEW_LINE_RE = re.compile(r'\r?\n', re.MULTILINE)
+SPECIAL_COMMENT_RE = re.compile(
+    r'(?P<wrapper><!--\s*(?:'
+    r'@(?:(?i)(?:import|include))\s+(?P<filenames>.*?)'
+    r'|'
+    r'[@$](?P<variable>[a-zA-Z][^\s:=]*)\s*(?:[\s:=]\s*(?P<value>.*?))?'
+    r')-->)',
+    re.DOTALL | re.LOCALE | re.MULTILINE | re.UNICODE
+)
 logger = logging.getLogger(__name__)
 
 
@@ -38,14 +58,8 @@ class VariableNotFoundError(CompileError):
 
 class Compiler(object):
 
-    SPECIAL_COMMENT_RE = re.compile(
-        r'(?P<wrapper><!--\s*(?:'
-        r'@(?:(?i)(?:import|include))\s+(?P<filenames>.*?)'
-        r'|'
-        r'[@$](?P<variable>[a-zA-Z][^\s:=]*)\s*(?:[\s:=]\s*(?P<value>.*?))?'
-        r')-->)',
-        re.DOTALL | re.LOCALE | re.MULTILINE | re.UNICODE
-    )
+    NEW_LINE_RE = NEW_LINE_RE
+    SPECIAL_COMMENT_RE = SPECIAL_COMMENT_RE
 
     def __init__(self, framework_paths=None):
         """
@@ -119,25 +133,42 @@ class Compiler(object):
 
     def parse_str(self, s):
         """
-        @type s: str (Python2.X unicode)
-        @rtype: [(str, str), ...]
+        @type s: str
+        @rtype: [(int, int, int, str, str), ...]
         """
         parsed = []
         pos = 0
+        line = 1
+        column = 1
         for m in self.SPECIAL_COMMENT_RE.finditer(s):
             if m.start('wrapper') > pos:
-                parsed.append(('NOOP', s[pos:m.start('wrapper')]))
+                subs = s[pos:m.start('wrapper')]
+                parsed.append(Fragment(pos, line, column, 'NOOP', subs))
+
+            pos = m.start('wrapper')
+            subs = self.NEW_LINE_RE.split(s[:pos])
+            line = len(subs)
+            column = len(subs[-1]) + 1
+
             if m.group('filenames'):
                 for filename in m.group('filenames').split(','):
                     filename = filename.strip().strip('\'"')
-                    parsed.append(('JUMP', filename))
+                    parsed.append(Fragment(pos, line, column, 'JUMP',
+                                           filename))
             elif m.group('value'):
                 value = m.group('value').strip()
-                parsed.append(('STOR', (m.group('variable'), value)))
+                parsed.append(Fragment(pos, line, column, 'STOR',
+                                       (m.group('variable'), value)))
             else:  # m.group('variable')
-                parsed.append(('LOAD', m.group('variable')))
+                parsed.append(Fragment(pos, line, column, 'LOAD',
+                                       m.group('variable')))
+
             pos = m.end('wrapper')
-        parsed.append(('NOOP', s[pos:]))
+            subs = self.NEW_LINE_RE.split(s[:pos])
+            line = len(subs)
+            column = len(subs[-1]) + 1
+
+        parsed.append(Fragment(pos, line, column, 'NOOP', s[pos:]))
         return parsed
 
     def parse_file(self, filepath=None, filename=None, basepath=None):
@@ -146,20 +177,27 @@ class Compiler(object):
         if signature:
             _, ext = os.path.splitext(filepath)
             encoding, s = get_file_content(filepath)
-            data = self.parse_str(s) if ext == '.kit' else [('NOOP', s)]
+            if ext == '.kit':
+                data = self.parse_str(s)
+            else:
+                data = [Fragment(0, 1, 1, 'NOOP', s)]
             self.parsed_caches[filepath] = dict(
                 signature=signature,
                 encoding=encoding,
                 data=data,
             )
             for i in range(len(data)):
-                command, subfilename = data[i]
-                if command == 'JUMP':
+                fragment = data[i]
+                if fragment.command == 'JUMP':
                     subfilepath = self.parse_file(
-                        filename=subfilename,
+                        filename=fragment.args,
                         basepath=os.path.dirname(filepath)
                     )
-                    data[i] = ('JUMP', subfilepath)
+                    data[i] = Fragment(fragment.pos,
+                                       fragment.line,
+                                       fragment.column,
+                                       'JUMP',
+                                       subfilepath)
         return filepath
 
     def generate_to_list(self, filepath, context=None):
@@ -170,15 +208,17 @@ class Compiler(object):
         if filepath not in self.parsed_caches:
             filepath = self.parse_file(filepath=filepath)
         cache = self.parsed_caches[filepath]
-        for command, args in cache['data']:
-            if command == 'NOOP':
-                compiled.append(args)
-            elif command == 'STOR':
-                context[args[0]] = args[1]
-            elif command == 'LOAD':
-                compiled.append(context[args])
-            elif command == 'JUMP':
-                compiled.extend(self.generate_to_list(args, context.copy()))
+        for fragment in cache['data']:
+            if fragment.command == 'NOOP':
+                compiled.append(fragment.args)
+            elif fragment.command == 'STOR':
+                context[fragment.args[0]] = fragment.args[1]
+            elif fragment.command == 'LOAD':
+                compiled.append(context.get(fragment.args, ''))
+            elif fragment.command == 'JUMP':
+                compiled.extend(
+                    self.generate_to_list(fragment.args, context.copy())
+                )
         return compiled
 
     def generate_to_str(self, filepath):

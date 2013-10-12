@@ -163,87 +163,105 @@ class ParseStrTestCase(unittest.TestCase):
         self.func = self.obj.parse_str
 
     def test_noop_1(self):
+        from ..compiler import Fragment
         ret = self.func('')
-        self.assertEqual([('NOOP', '')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', '')], ret)
 
     def test_noop_2(self):
+        from ..compiler import Fragment
         ret = self.func('not comments')
-        self.assertEqual([('NOOP', 'not comments')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'not comments')], ret)
 
     def test_noop_3(self):
+        from ..compiler import Fragment
         ret = self.func('not <!-- dummy comment --> symbol')
-        self.assertEqual([('NOOP', 'not <!-- dummy comment --> symbol')], ret)
+        self.assertEqual(
+            [Fragment(0, 1, 1, 'NOOP', 'not <!-- dummy comment --> symbol')],
+            ret
+        )
 
     def test_jump_1(self):
+        from ..compiler import Fragment
         ret = self.func('pre <!--@include aaa--> post')
-        self.assertEqual([('NOOP', 'pre '),
-                          ('JUMP', 'aaa'),
-                          ('NOOP', ' post')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'pre '),
+                          Fragment(4, 1, 5, 'JUMP', 'aaa'),
+                          Fragment(23, 1, 24, 'NOOP', ' post')], ret)
 
     def test_jump_2(self):
+        from ..compiler import Fragment
         ret = self.func('pre <!-- @import "b b b" --> post')
-        self.assertEqual([('NOOP', 'pre '),
-                          ('JUMP', 'b b b'),
-                          ('NOOP', ' post')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'pre '),
+                          Fragment(4, 1, 5, 'JUMP', 'b b b'),
+                          Fragment(28, 1, 29, 'NOOP', ' post')], ret)
 
     def test_jump_3(self):
+        from ..compiler import Fragment
         ret = self.func("pre <!-- @INCLUDE ccc, 'd d d' --> post")
-        self.assertEqual([('NOOP', 'pre '),
-                          ('JUMP', 'ccc'),
-                          ('JUMP', 'd d d'),
-                          ('NOOP', ' post')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'pre '),
+                          Fragment(4, 1, 5, 'JUMP', 'ccc'),
+                          Fragment(4, 1, 5, 'JUMP', 'd d d'),
+                          Fragment(34, 1, 35, 'NOOP', ' post')], ret)
 
     def test_jump_4(self):
+        from ..compiler import Fragment
         ret = self.func("""pre <!--
         @INCLUDE
         eee,
         fff
         --> post""")
-        self.assertEqual([('NOOP', 'pre '),
-                          ('JUMP', 'eee'),
-                          ('JUMP', 'fff'),
-                          ('NOOP', ' post')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'pre '),
+                          Fragment(4, 1, 5, 'JUMP', 'eee'),
+                          Fragment(4, 1, 5, 'JUMP', 'fff'),
+                          Fragment(62, 5, 12, 'NOOP', ' post')], ret)
 
     def test_load_1(self):
+        from ..compiler import Fragment
         ret = self.func('pre <!--@var1--> post')
-        self.assertEqual([('NOOP', 'pre '),
-                          ('LOAD', 'var1'),
-                          ('NOOP', ' post')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'pre '),
+                          Fragment(4, 1, 5, 'LOAD', 'var1'),
+                          Fragment(16, 1, 17, 'NOOP', ' post')], ret)
 
     def test_load_2(self):
+        from ..compiler import Fragment
         ret = self.func('pre <!-- $VAR2 --> post')
-        self.assertEqual([('NOOP', 'pre '),
-                          ('LOAD', 'VAR2'),
-                          ('NOOP', ' post')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'pre '),
+                          Fragment(4, 1, 5, 'LOAD', 'VAR2'),
+                          Fragment(18, 1, 19, 'NOOP', ' post')], ret)
 
     def test_stor_1(self):
+        from ..compiler import Fragment
         ret = self.func('pre <!--@var_A val1--> post')
-        self.assertEqual([('NOOP', 'pre '),
-                          ('STOR', ('var_A', 'val1')),
-                          ('NOOP', ' post')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'pre '),
+                          Fragment(4, 1, 5, 'STOR', ('var_A', 'val1')),
+                          Fragment(22, 1, 23, 'NOOP', ' post')], ret)
 
     def test_stor_2(self):
+        from ..compiler import Fragment
         ret = self.func('pre <!-- @var_B:val2 --> post')
-        self.assertEqual([('NOOP', 'pre '),
-                          ('STOR', ('var_B', 'val2')),
-                          ('NOOP', ' post')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'pre '),
+                          Fragment(4, 1, 5, 'STOR', ('var_B', 'val2')),
+                          Fragment(24, 1, 25, 'NOOP', ' post')], ret)
 
     def test_stor_3(self):
+        from ..compiler import Fragment
         ret = self.func('pre <!-- $var_C = v a l 3 --> post')
-        self.assertEqual([('NOOP', 'pre '),
-                          ('STOR', ('var_C', 'v a l 3')),
-                          ('NOOP', ' post')], ret)
+        self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'pre '),
+                          Fragment(4, 1, 5, 'STOR', ('var_C', 'v a l 3')),
+                          Fragment(29, 1, 30, 'NOOP', ' post')], ret)
 
     def test_stor_4(self):
+        from ..compiler import Fragment
         ret = self.func("""pre <!--
         $var_D
 very
 long
 value
-        --> post""")
-        self.assertEqual([('NOOP', 'pre '),
-                          ('STOR', ('var_D', 'very\nlong\nvalue')),
-                          ('NOOP', ' post')], ret)
+--> post""")
+        self.assertEqual([
+            Fragment(0, 1, 1, 'NOOP', 'pre '),
+            Fragment(4, 1, 5, 'STOR', ('var_D', 'very\nlong\nvalue')),
+            Fragment(43, 6, 4, 'NOOP', ' post'),
+        ], ret)
 
 
 class ParseFileTestCase(unittest.TestCase):
@@ -263,50 +281,56 @@ class ParseFileTestCase(unittest.TestCase):
         self.assertEqual(self.func(filepath), os.path.realpath(filepath))
 
     def test_1(self):
+        from ..compiler import Fragment
         self.assertParsed('file1.html')
         self.assertEqual(
             self.obj.parsed_caches[
                 os.path.join(self.basepath, 'file1.html')
             ]['data'],
-            [('NOOP', 'file1.html\n')]
+            [Fragment(0, 1, 1, 'NOOP', 'file1.html\n')]
         )
 
     def test_2(self):
+        from ..compiler import Fragment
         self.assertParsed('parse_file_test2.html')
         self.assertEqual(
             self.obj.parsed_caches[
                 os.path.join(self.basepath, 'parse_file_test2.html')
             ]['data'],
-            [('NOOP', 'AAA\n'
-                      '<!--$aaa AAA-->\n'
-                      '<!--@include parse_file_test3-->\n'
-                      '<!--$aaa-->\n'
+            [Fragment(0, 1, 1, 'NOOP',
+                      'AAA\n' +
+                      '<!--$aaa AAA-->\n' +
+                      '<!--@include parse_file_test3-->\n' +
+                      '<!--$aaa-->\n' +
                       'BBB\n')]
         )
 
     def test_3(self):
+        from ..compiler import Fragment
         self.assertParsed('parse_file_test3.kit')
         self.assertEqual(
             self.obj.parsed_caches[
                 os.path.join(self.basepath, 'parse_file_test2.html')
             ]['data'],
-            [('NOOP', 'AAA\n'
-                      '<!--$aaa AAA-->\n'
-                      '<!--@include parse_file_test3-->\n'
-                      '<!--$aaa-->\n'
+            [Fragment(0, 1, 1, 'NOOP',
+                      'AAA\n' +
+                      '<!--$aaa AAA-->\n' +
+                      '<!--@include parse_file_test3-->\n' +
+                      '<!--$aaa-->\n' +
                       'BBB\n')]
         )
         self.assertEqual(
             self.obj.parsed_caches[
                 os.path.join(self.basepath, 'parse_file_test3.kit')
             ]['data'],
-            [('NOOP', 'AAA\n'),
-             ('STOR', ('aaa', 'AAA')),
-             ('NOOP', '\n'),
-             ('JUMP', os.path.join(self.dp, 'b', 'parse_file_test2.html')),
-             ('NOOP', '\n'),
-             ('LOAD', 'aaa'),
-             ('NOOP', '\nBBB\n')]
+            [Fragment(0, 1, 1, 'NOOP', 'AAA\n'),
+             Fragment(4, 2, 1, 'STOR', ('aaa', 'AAA')),
+             Fragment(19, 2, 16, 'NOOP', '\n'),
+             Fragment(20, 3, 1, 'JUMP',
+                      os.path.join(self.dp, 'b', 'parse_file_test2.html')),
+             Fragment(57, 3, 38, 'NOOP', '\n'),
+             Fragment(58, 4, 1, 'LOAD', 'aaa'),
+             Fragment(69, 4, 12, 'NOOP', '\nBBB\n')]
         )
 
 
