@@ -15,7 +15,7 @@ Run `./setup.py build && sudo setup.py install`
 
 RUNNING TESTS
 =============
-From the top level directory run `python -m unittest discover`
+From the top level directory run `./setup.py test`
 
 TODO
 ====

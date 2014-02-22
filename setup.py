@@ -16,9 +16,10 @@ setup(
     author_email='gjo.ext@gmail.com',
     url='https://github.com/gjo/python-codekitlang',
     license='BSD',
-    packages=find_packages(),
-    include_package_data=True,
+    packages=find_packages(exclude=["*.tests"]),
+    include_package_data=False,
     zip_safe=False,
+    test_suite = 'codekitlang.tests',
     install_requires=('setuptools', 'mock',),
     entry_points={
         'console_scripts': (
