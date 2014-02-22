@@ -13,3 +13,6 @@ def main():
     namespace = parser.parse_args()
     compiler_ = compiler.Compiler(framework_paths=namespace.framework_paths)
     compiler_.generate_to_file(namespace.dest[0], namespace.src[0])
+
+if __name__ == '__main__':  # pragma:nocover
+    main()
