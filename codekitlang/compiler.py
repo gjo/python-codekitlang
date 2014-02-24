@@ -182,7 +182,7 @@ class Compiler(object):
         return compiled
 
     def generate_to_str(self, filepath):
-        return ''.join(self.generate_to_list(filepath)).encode('utf-8')
+        return ''.join(self.generate_to_list(filepath))
 
     def generate_to_file(self, dest, src):
         dest = os.path.realpath(dest)
@@ -190,6 +190,8 @@ class Compiler(object):
         if not os.path.exists(d):
             os.makedirs(d)
         s = self.generate_to_str(src)
+        # TODO: not implemented encoding detection yet
+        s = s.encode('utf-8')
         with open(dest, 'wb') as fp:
             fp.write(s)
         return
