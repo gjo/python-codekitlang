@@ -182,7 +182,7 @@ class Compiler(object):
         return compiled
 
     def generate_to_str(self, filepath):
-        return ''.join(self.generate_to_list(filepath))
+        return ''.join(self.generate_to_list(filepath)).encode('utf-8')
 
     def generate_to_file(self, dest, src):
         dest = os.path.realpath(dest)

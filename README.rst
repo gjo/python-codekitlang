@@ -9,6 +9,14 @@ There is the `Reference implementation`_ written by Objective-C.
 .. _CodeKit Language: http://incident57.com/codekit/kit.php
 .. _Reference implementation: https://github.com/bdkjones/Kit
 
+INSTALL
+======
+Run `./setup.py build && sudo setup.py install`
+
+RUNNING TESTS
+=============
+From the top level directory run `./setup.py test`
+
 TODO
 ====
 

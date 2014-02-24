@@ -27,12 +27,13 @@ setup(
     author_email='gjo.ext@gmail.com',
     url='https://github.com/gjo/python-codekitlang',
     license='BSD',
-    packages=find_packages(),
-    include_package_data=True,
+    packages=find_packages(exclude=["*.tests"]),
+    include_package_data=False,
     zip_safe=False,
     install_requires=('setuptools',),
     tests_require=('pytest-cov', 'pytest-pep8', 'pytest-flakes', 'mock',),
     cmdclass={'test': PyTest},
+    test_suite = 'codekitlang.tests',
     entry_points={
         'console_scripts': (
             'pykitlangc = codekitlang.command:main',

@@ -375,3 +375,6 @@ class GenerateToFileTestCase(unittest.TestCase):
     def test(self):
         self.assertGenerateToFile('dd/parse_file_test3.html',
                                   'parse_file_test3.kit')
+
+        self.assertGenerateToFile('parse_unicode_result.html',
+                                  'parse_unicode.kit')
