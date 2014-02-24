@@ -1,2 +1,2 @@
 recursive-include codekitlang/tests/data *.kit *.html
-include *.txt
+include README.rst MANIFEST.in .gitignore *.txt

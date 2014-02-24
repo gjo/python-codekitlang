@@ -4,12 +4,9 @@ Change History
 0.2 - Unreleased
 ----------------
 
-- Bug fixes for unicode content
+- Fixes Unicode Error on non-ASCII content.
 
-- Updated README with notes on how to install
-
-- Fixed some typos 
-
+- Update Documents.
 
 0.1.3 - 2013-09-15
 ------------------
