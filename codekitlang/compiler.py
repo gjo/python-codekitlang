@@ -190,6 +190,8 @@ class Compiler(object):
         if not os.path.exists(d):
             os.makedirs(d)
         s = self.generate_to_str(src)
+        # TODO: not implemented encoding detection yet
+        s = s.encode('utf-8')
         with open(dest, 'wb') as fp:
             fp.write(s)
         return
