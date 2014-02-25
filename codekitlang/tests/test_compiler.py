@@ -333,6 +333,15 @@ class ParseFileTestCase(unittest.TestCase):
              Fragment(69, 4, 12, 'NOOP', '\nBBB\n')]
         )
 
+    def test_filenotfound_warn(self):
+        self.assertParsed('parse_file_missing_file.kit')
+
+    def test_filenotfound_error(self):
+        from ..compiler import FileNotFoundError
+        self.obj.missing_file = 'error'
+        filepath = os.path.join(self.basepath, 'parse_file_missing_file.kit')
+        self.assertRaises(FileNotFoundError, self.func, filepath)
+
 
 class GenerateToStrTestCase(unittest.TestCase):
 

@@ -183,6 +183,12 @@ class Compiler(object):
 
     def parse_file(self, filepath=None, filename=None, basepath=None):
         filepath = self.normalize_path(filepath, filename, basepath)
+        if filepath is None or not os.path.exists(filepath):
+            if self.missing_file == 'error':
+                raise FileNotFoundError(filepath)
+            if self.missing_file == 'warn':
+                logger.warn('file %s not found', filepath)
+            return None
         signature = self.get_new_signature(filepath)
         if signature:
             _, ext = os.path.splitext(filepath)
@@ -217,8 +223,8 @@ class Compiler(object):
         compiled = []
         if filepath not in self.parsed_caches:
             filepath = self.parse_file(filepath=filepath)
-        cache = self.parsed_caches[filepath]
-        for fragment in cache['data']:
+        cache = self.parsed_caches.get(filepath, {})
+        for fragment in cache.get('data', []):
             if fragment.command == 'NOOP':
                 compiled.append(fragment.args)
             elif fragment.command == 'STOR':
