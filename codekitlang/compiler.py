@@ -61,9 +61,13 @@ class Compiler(object):
     NEW_LINE_RE = NEW_LINE_RE
     SPECIAL_COMMENT_RE = SPECIAL_COMMENT_RE
 
-    def __init__(self, framework_paths=None):
+    def __init__(self, framework_paths=None, missing_file=None,
+                 missing_variable=None):
         """
         @param framework_paths: [str, ...]
+        @param missing_file: 'ignore', 'warn' or 'error'  (default: 'warn')
+        @param missing_variable: 'ignroe', 'warn' or 'error'
+                                 (default: 'ignore')
         """
         if framework_paths is None:
             self.framework_paths = tuple()
@@ -73,6 +77,12 @@ class Compiler(object):
             self.framework_paths = (framework_paths,)
         else:
             self.framework_paths = tuple(framework_paths)
+        if missing_file is None:
+            missing_file = 'warn'
+        self.missing_file = missing_file
+        if missing_variable is None:
+            missing_variable = 'ignore'
+        self.missing_variable = missing_variable
         self.parsed_caches = dict()
 
     def resolve_path(self, filename, base_path):
