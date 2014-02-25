@@ -363,6 +363,20 @@ AAA
 BBB
 """)
 
+    def test_missing_var_warn(self):
+        self.obj.missing_variable = 'warn'
+        self.assertGenerateToStr('generate_to_str_missing_var.kit', """AAA
+
+BBB
+""")
+
+    def test_missing_var_error(self):
+        from ..compiler import VariableNotFoundError
+        self.obj.missing_variable = 'error'
+        filepath = os.path.join(self.basepath,
+                                'generate_to_str_missing_var.kit')
+        self.assertRaises(VariableNotFoundError, self.func, filepath)
+
 
 class GenerateToFileTestCase(unittest.TestCase):
 

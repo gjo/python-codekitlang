@@ -224,6 +224,13 @@ class Compiler(object):
             elif fragment.command == 'STOR':
                 context[fragment.args[0]] = fragment.args[1]
             elif fragment.command == 'LOAD':
+                if fragment.args not in context:
+                    if self.missing_variable == 'error':
+                        raise VariableNotFoundError(filepath, fragment)
+                    elif self.missing_variable == 'warn':
+                        logger.warn('variable %s not found on %s:%d:%d',
+                                    fragment.args, filepath, fragment.line,
+                                    fragment.column)
                 compiled.append(context.get(fragment.args, ''))
             elif fragment.command == 'JUMP':
                 compiled.extend(
