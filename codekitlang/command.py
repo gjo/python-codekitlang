@@ -16,12 +16,11 @@ def main():
                         choices=['ignore', 'warn', 'error'],
                         default='ignore', metavar='BEHAVIOR')
     namespace = parser.parse_args()
-    compiler_ = compiler.Compiler(
-        framework_paths=namespace.framework_paths,
-        missing_file=namespace.missing_file,
-        missing_variable=namespace.missing_variable,
-    )
-    compiler_.generate_to_file(namespace.dest[0], namespace.src[0])
+    options = vars(namespace)
+    src = options.pop('src')
+    dest = options.pop('dest')
+    compiler_ = compiler.Compiler(**options)
+    compiler_.generate_to_file(dest[0], src[0])
 
 if __name__ == '__main__':  # pragma:nocover
     main()
