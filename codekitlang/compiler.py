@@ -47,10 +47,11 @@ class Compiler(object):
         re.DOTALL | re.LOCALE | re.MULTILINE | re.UNICODE
     )
 
-    def __init__(self, framework_paths=None):
+    def __init__(self, framework_paths=None, strip_basenames=None):
         """
         @param framework_paths: [str, ...]
         """
+        self.strip_basenames = bool(strip_basenames)
         if framework_paths is None:
             self.framework_paths = tuple()
         elif isinstance(framework_paths, tuple):
