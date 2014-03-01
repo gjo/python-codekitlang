@@ -103,6 +103,11 @@ class ResolveFilePathTestCase(unittest.TestCase):
         self.assertFound('_file15', ('f2', '_file15.kit'))
         self.assertFound('_file15.kit', ('f2', '_file15.kit'))
 
+    def test_strip_basenames(self):
+        self.obj.strip_basenames = True
+        self.assertFound(' file1.html ', ('b', 'file1.html'))
+        self.assertFound(' sub / file4.html ', ('b', 'sub', 'file4.html'))
+
 
 class NormalizePathTestCase(unittest.TestCase):
 

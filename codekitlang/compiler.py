@@ -20,6 +20,16 @@ def get_file_content(filepath, encoding_hints=None):
     return 'utf-8', unicode(b, encoding='utf-8', errors='replace')
 
 
+def strip_basenames(filepath):
+    """
+    @type filepath: str
+    """
+    # TODO: normalize directory separators.
+    has_leading = filepath.startswith('/')
+    has_trailing = filepath.endswith('/')
+    return '/'.join([b.strip() for b in filepath.split('/')])
+
+
 class CompileError(Exception):
     pass
 
@@ -90,6 +100,11 @@ class Compiler(object):
                 if os.path.exists(filepath):
                     logger.debug('Using %s for %s', filepath, filename)
                     return filepath
+                if self.strip_basenames:
+                    filepath = strip_basenames(filepath)
+                    if os.path.exists(filepath):
+                        logger.debug('Using %s for %s', filepath, filename)
+                        return filepath
         return None
 
     def normalize_path(self, filepath=None, filename=None, basepath=None):
