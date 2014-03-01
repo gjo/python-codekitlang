@@ -11,8 +11,11 @@ def main():
     parser.add_argument('--framework-paths', '-f', action='append',
                         metavar='DIR')
     namespace = parser.parse_args()
-    compiler_ = compiler.Compiler(framework_paths=namespace.framework_paths)
-    compiler_.generate_to_file(namespace.dest[0], namespace.src[0])
+    options = vars(namespace)
+    src = options.pop('src')[0]
+    dest = options.pop('dest')[0]
+    compiler_ = compiler.Compiler(**options)
+    compiler_.generate_to_file(dest, src)
 
 if __name__ == '__main__':  # pragma:nocover
     main()
