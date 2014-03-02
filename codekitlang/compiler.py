@@ -61,13 +61,14 @@ class Compiler(object):
     NEW_LINE_RE = NEW_LINE_RE
     SPECIAL_COMMENT_RE = SPECIAL_COMMENT_RE
 
-    def __init__(self, framework_paths=None, missing_file=None,
-                 missing_variable=None):
+    def __init__(self, framework_paths=None, missing_file_behavior=None,
+                 missing_variable_behavior=None):
         """
         @param framework_paths: [str, ...]
-        @param missing_file: 'ignore', 'warn' or 'error'  (default: 'warn')
-        @param missing_variable: 'ignroe', 'warn' or 'error'
-                                 (default: 'ignore')
+        @param missing_file_behavior: 'ignore', 'logonly' or 'exception'
+                                      (default: 'logonly')
+        @param missing_variable_behavior: 'ignroe', 'logonly' or 'exception'
+                                          (default: 'ignore')
         """
         if framework_paths is None:
             self.framework_paths = tuple()
@@ -77,12 +78,15 @@ class Compiler(object):
             self.framework_paths = (framework_paths,)
         else:
             self.framework_paths = tuple(framework_paths)
-        if missing_file is None:
-            missing_file = 'warn'
-        self.missing_file = missing_file
-        if missing_variable is None:
-            missing_variable = 'ignore'
-        self.missing_variable = missing_variable
+
+        if missing_file_behavior is None:
+            missing_file_behavior = 'logonly'
+        self.missing_file_behavior = missing_file_behavior
+
+        if missing_variable_behavior is None:
+            missing_variable_behavior = 'ignore'
+        self.missing_variable_behavior = missing_variable_behavior
+
         self.parsed_caches = dict()
 
     def resolve_path(self, filename, base_path):
@@ -184,9 +188,9 @@ class Compiler(object):
     def parse_file(self, filepath=None, filename=None, basepath=None):
         filepath = self.normalize_path(filepath, filename, basepath)
         if filepath is None or not os.path.exists(filepath):
-            if self.missing_file == 'error':
+            if self.missing_file_behavior == 'exception':
                 raise FileNotFoundError(filepath)
-            if self.missing_file == 'warn':
+            if self.missing_file_behavior == 'logonly':
                 logger.warn('file %s not found', filepath)
             return None
         signature = self.get_new_signature(filepath)
@@ -231,9 +235,9 @@ class Compiler(object):
                 context[fragment.args[0]] = fragment.args[1]
             elif fragment.command == 'LOAD':
                 if fragment.args not in context:
-                    if self.missing_variable == 'error':
+                    if self.missing_variable_behavior == 'exception':
                         raise VariableNotFoundError(filepath, fragment)
-                    elif self.missing_variable == 'warn':
+                    elif self.missing_variable_behavior == 'logonly':
                         logger.warn('variable %s not found on %s:%d:%d',
                                     fragment.args, filepath, fragment.line,
                                     fragment.column)

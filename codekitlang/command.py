@@ -4,17 +4,31 @@ import argparse
 from . import compiler
 
 
+def _(s):
+    return s
+
+
 def main():
-    parser = argparse.ArgumentParser(description='CodeKit Language Compiler.')
-    parser.add_argument('src', nargs=1, metavar='SOURCE')
-    parser.add_argument('dest', nargs=1, metavar='DEST')
-    parser.add_argument('--framework-paths', '-f', action='append',
-                        metavar='DIR')
-    parser.add_argument('--missing-file', choices=['ignore', 'warn', 'error'],
-                        default='warn', metavar='BEHAVIOR')
-    parser.add_argument('--missing-variable',
-                        choices=['ignore', 'warn', 'error'],
-                        default='ignore', metavar='BEHAVIOR')
+    parser = argparse.ArgumentParser(
+        prog='pykitlangc',
+        description=_('CodeKit Language Compiler.'),
+    )
+    parser.add_argument('src', nargs=1, metavar='SRC', help=_('input file'))
+    parser.add_argument('dest', nargs=1, metavar='DEST', help=_('output file'))
+    parser.add_argument(
+        '-f', '--framework-paths', metavar='DIR', action='append',
+        help=_('path for lookup include file (allow multiple defs)'),
+    )
+    parser.add_argument(
+        '--missing-file-behavior', metavar='BEHAVIOR', default='warn',
+        choices=('ignore', 'logonly', 'exception'),
+        help=_('one of ignore, logonly, exception (default: logonly)'),
+    )
+    parser.add_argument(
+        '--missing-variable-behavior', metavar='BEHAVIOR', default='ignore',
+        choices=('ignore', 'logonly', 'exception'),
+        help=_('one of ignore, logonly, exception (default: ignore)'),
+    )
     namespace = parser.parse_args()
     options = vars(namespace)
     src = options.pop('src')

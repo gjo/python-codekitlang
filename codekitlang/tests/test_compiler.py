@@ -333,12 +333,12 @@ class ParseFileTestCase(unittest.TestCase):
              Fragment(69, 4, 12, 'NOOP', '\nBBB\n')]
         )
 
-    def test_filenotfound_warn(self):
+    def test_filenotfound_logonly(self):
         self.assertParsed('parse_file_missing_file.kit')
 
-    def test_filenotfound_error(self):
+    def test_filenotfound_exception(self):
         from ..compiler import FileNotFoundError
-        self.obj.missing_file = 'error'
+        self.obj.missing_file_behavior = 'exception'
         filepath = os.path.join(self.basepath, 'parse_file_missing_file.kit')
         self.assertRaises(FileNotFoundError, self.func, filepath)
 
@@ -372,16 +372,16 @@ AAA
 BBB
 """)
 
-    def test_missing_var_warn(self):
-        self.obj.missing_variable = 'warn'
+    def test_missing_var_logonly(self):
+        self.obj.missing_variable_behavior = 'logonly'
         self.assertGenerateToStr('generate_to_str_missing_var.kit', """AAA
 
 BBB
 """)
 
-    def test_missing_var_error(self):
+    def test_missing_var_exception(self):
         from ..compiler import VariableNotFoundError
-        self.obj.missing_variable = 'error'
+        self.obj.missing_variable_behavior = 'exception'
         filepath = os.path.join(self.basepath,
                                 'generate_to_str_missing_var.kit')
         self.assertRaises(VariableNotFoundError, self.func, filepath)
