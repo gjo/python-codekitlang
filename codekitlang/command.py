@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import logging
 from . import compiler
 
 
@@ -33,6 +34,10 @@ def main():
     options = vars(namespace)
     src = options.pop('src')
     dest = options.pop('dest')
+    logger = logging.getLogger('pykitlangc')
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+    options['logger'] = logger
     compiler_ = compiler.Compiler(**options)
     compiler_.generate_to_file(dest[0], src[0])
 

@@ -25,7 +25,7 @@ SPECIAL_COMMENT_RE = re.compile(
     r')-->)',
     re.DOTALL | re.LOCALE | re.MULTILINE | re.UNICODE
 )
-logger = logging.getLogger(__name__)
+default_logger = logging.getLogger(__name__)
 
 
 def get_file_content(filepath, encoding_hints=None):
@@ -64,11 +64,13 @@ class Compiler(object):
 
     NEW_LINE_RE = NEW_LINE_RE
     SPECIAL_COMMENT_RE = SPECIAL_COMMENT_RE
+    logger = default_logger
 
-    def __init__(self, framework_paths=None, missing_file_behavior=None,
-                 missing_variable_behavior=None):
+    def __init__(self, framework_paths=None, logger=None,
+                 missing_file_behavior=None, missing_variable_behavior=None):
         """
         @param framework_paths: [str, ...]
+        @param logger: logging.Logger
         @param missing_file_behavior: 'ignore', 'logonly' or 'exception'
                                       (default: 'logonly')
         @param missing_variable_behavior: 'ignroe', 'logonly' or 'exception'
@@ -82,6 +84,9 @@ class Compiler(object):
             self.framework_paths = (framework_paths,)
         else:
             self.framework_paths = tuple(framework_paths)
+
+        if logger is not None:
+            self.logger = logger
 
         if missing_file_behavior is None:
             missing_file_behavior = 'logonly'
@@ -119,7 +124,7 @@ class Compiler(object):
                         prefix + os.path.basename(filename)
                     )
                 if os.path.exists(filepath):
-                    logger.debug('Using %s for %s', filepath, filename)
+                    self.logger.debug('Using %s for %s', filepath, filename)
                     return filepath
         return None
 
@@ -195,7 +200,7 @@ class Compiler(object):
             if self.missing_file_behavior == 'exception':
                 raise FileNotFoundError(filepath)
             if self.missing_file_behavior == 'logonly':
-                logger.warn('file %s not found', filepath)
+                self.logger.warn('file %s not found', filepath)
             return None
         signature = self.get_new_signature(filepath)
         if signature:
@@ -246,9 +251,10 @@ class Compiler(object):
                     if self.missing_variable_behavior == 'exception':
                         raise VariableNotFoundError(filepath, fragment)
                     elif self.missing_variable_behavior == 'logonly':
-                        logger.warn('variable %s not found on %s:%d:%d',
-                                    fragment.args, filepath, fragment.line,
-                                    fragment.column)
+                        self.logger.warn(
+                            'variable %s not found on %s:%d:%d', fragment.args,
+                            filepath, fragment.line, fragment.column
+                        )
                 compiled.append(context.get(fragment.args, ''))
             elif fragment.command == 'JUMP':
                 compiled.extend(
