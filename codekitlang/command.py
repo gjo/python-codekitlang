@@ -20,7 +20,7 @@ def main():
         help=_('path for lookup include file (allow multiple defs)'),
     )
     parser.add_argument(
-        '--missing-file-behavior', metavar='BEHAVIOR', default='warn',
+        '--missing-file-behavior', metavar='BEHAVIOR', default='logonly',
         choices=('ignore', 'logonly', 'exception'),
         help=_('one of ignore, logonly, exception (default: logonly)'),
     )
