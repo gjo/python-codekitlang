@@ -386,6 +386,18 @@ BBB
                                 'generate_to_str_missing_var.kit')
         self.assertRaises(VariableNotFoundError, self.func, filepath)
 
+    def test_cyclic_inclusion1(self):
+        from ..compiler import CyclicInclusionError
+        filepath = os.path.join(self.basepath,
+                                'generate_to_str_cyclic_inclusion1.kit')
+        self.assertRaises(CyclicInclusionError, self.func, filepath)
+
+    def test_cyclic_inclusion2(self):
+        from ..compiler import CyclicInclusionError
+        filepath = os.path.join(self.basepath,
+                                'generate_to_str_cyclic_inclusion2a.kit')
+        self.assertRaises(CyclicInclusionError, self.func, filepath)
+
 
 class GenerateToFileTestCase(unittest.TestCase):
 

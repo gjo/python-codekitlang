@@ -44,6 +44,10 @@ class CompileError(Exception):
     pass
 
 
+class CyclicInclusionError(CompileError):
+    pass
+
+
 class FileNotFoundError(CompileError):
     pass
 
@@ -220,10 +224,14 @@ class Compiler(object):
                                        subfilepath)
         return filepath
 
-    def generate_to_list(self, filepath, context=None):
+    def generate_to_list(self, filepath, context=None, stack=None):
         filepath = os.path.realpath(filepath)
         if context is None:
             context = dict()
+        if stack is None:
+            stack = tuple()
+        if filepath in stack:
+            raise CyclicInclusionError(filepath, stack)
         compiled = []
         if filepath not in self.parsed_caches:
             filepath = self.parse_file(filepath=filepath)
@@ -244,7 +252,8 @@ class Compiler(object):
                 compiled.append(context.get(fragment.args, ''))
             elif fragment.command == 'JUMP':
                 compiled.extend(
-                    self.generate_to_list(fragment.args, context.copy())
+                    self.generate_to_list(fragment.args, context.copy(),
+                                          stack + (filepath,))
                 )
         return compiled
 
