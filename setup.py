@@ -1,15 +1,26 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 
+here = os.path.abspath(os.path.dirname(__file__))
+
+
 class PyTest(TestCommand):
+
     def finalize_options(self):
         TestCommand.finalize_options(self)
-        self.test_args = []
+        self.test_args = [
+            '--pep8',
+            '--flakes',
+            '--cov={path}'.format(path=os.path.join(here, 'codekitlang')),
+            '--cov-report=term-missing',
+        ]
         self.test_suite = True
+
     def run_tests(self):
         import pytest
         pytest.main(self.test_args)
@@ -31,7 +42,8 @@ setup(
     include_package_data=False,
     zip_safe=False,
     install_requires=('setuptools',),
-    tests_require=('pytest-cov', 'pytest-pep8', 'pytest-flakes', 'mock',),
+    tests_require=('pytest-cov', 'pytest-pep8', 'pytest-flakes', 'mock',
+                   'testfixtures'),
     cmdclass={'test': PyTest},
     test_suite = 'codekitlang.tests',
     entry_points={

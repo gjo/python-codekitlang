@@ -53,3 +53,12 @@ class CommandTestCase(unittest.TestCase):
                   'rb') as fp:
             actual = fp.read()
         self.assertListEqual(list(difflib.unified_diff(forecast, actual)), [])
+
+    @mock.patch('codekitlang.compiler.Compiler.generate_to_file')
+    def test_exception(self, mocked_generate_to_file):
+        from ..compiler import CompileError
+        mocked_generate_to_file.side_effect = CompileError()
+        with mock.patch('sys.argv', new=['PROG', 'SRC', 'DEST']):
+            from .. import command
+            self.assertRaises(SystemExit, command.main)
+            mocked_generate_to_file.assert_called_with('DEST', 'SRC')
