@@ -9,6 +9,7 @@ There is the `Reference implementation`_ written by Objective-C.
 .. _CodeKit Language: http://incident57.com/codekit/kit.php
 .. _Reference implementation: https://github.com/bdkjones/Kit
 
+
 Install
 =======
 
@@ -19,6 +20,7 @@ From PyPI::
 From source::
 
   python setup.py install
+
 
 Running Compiler
 ================
@@ -44,24 +46,23 @@ Run ``pykitlangc`` or ``python -m codekitlang.command``::
     --missing-variable-behavior BEHAVIOR
                           one of ignore, logonly, exception (default: ignore)
 
+
 Running Tests
 =============
 
 From the top level directory run ``python setup.py test`` or run ``py.test``.
+
 
 TODO
 ====
 
 Under features are planed, but not implement yet.
 
-- User friendly error messages.
-- Detect cyclic inclusion.
-- Handle options for files not found.
-- Handle options for variables not found.
 - Directory recursive compile.
 - Watchdog integration.
 - Encoding Detection.
 - Python3 support.
+
 
 License
 =======

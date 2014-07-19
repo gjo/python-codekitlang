@@ -1,42 +1,40 @@
 Change History
 ==============
 
-0.3 - Unreleased
+0.3 - 2014-07-19
 ----------------
 
-- In-progress...
+- User friendly error messages.
+- Detect cyclic inclusion.
+- Handle options for files are not found.
+- Handle options for variables are not found.
 
 0.2 - 2014-02-25
 ----------------
 
 - Fixes Unicode Error on non-ASCII content.
-
 - Update Documents.
 
 0.1.3 - 2013-09-15
 ------------------
 
 - Not Changed.
-
 - Fixes typo in copying and MANIFEST
 
 0.1.2 - 2013-09-01
 ------------------
 
 - Not Changed.
-
 - Fixes typo in classifiers.
 
 0.1.1 - 2013-09-01
 ------------------
 
 - Not Changed.
-
 - Remove beta classifier.
 
 0.1 - 2013-09-01
 ----------------
 
 - Initial release.
-
 - Add command `pykitlangc`.
