@@ -380,12 +380,20 @@ AAA
 BBB
 """)
 
-    def test_missing_var_logonly(self):
+    @testfixtures.log_capture()
+    def test_missing_var_logonly(self, l):
+        """
+        @type l: testfixtures.LogCapture
+        """
         self.obj.missing_variable_behavior = 'logonly'
         self.assertGenerateToStr('generate_to_str_missing_var.kit', """AAA
 
 BBB
 """)
+        f = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                         'data', 'b', 'generate_to_str_missing_var.kit')
+        l.check(('codekitlang.compiler', 'WARNING',
+                 'variable aaa not found on {}:2:1'.format(f)),)
 
     def test_missing_var_exception(self):
         from ..compiler import VariableNotFoundError
