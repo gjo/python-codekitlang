@@ -232,10 +232,11 @@ class Compiler(object):
     def parse_file(self, filepath=None, filename=None, basepath=None):
         filepath = self.normalize_path(filepath, filename, basepath)
         if filepath is None or not os.path.exists(filepath):
+            ex = FileNotFoundError(filepath)
             if self.missing_file_behavior == 'exception':
-                raise FileNotFoundError(filepath)
+                raise ex
             if self.missing_file_behavior == 'logonly':
-                self.logger.warn('file %s not found', filepath)
+                self.logger.warn(ex.to_message())
             return None
         signature = self.get_new_signature(filepath)
         if signature:
@@ -283,13 +284,11 @@ class Compiler(object):
                 context[fragment.args[0]] = fragment.args[1]
             elif fragment.command == 'LOAD':
                 if fragment.args not in context:
+                    ex = VariableNotFoundError(filepath, fragment)
                     if self.missing_variable_behavior == 'exception':
-                        raise VariableNotFoundError(filepath, fragment)
+                        raise ex
                     elif self.missing_variable_behavior == 'logonly':
-                        self.logger.warn(
-                            'variable %s not found on %s:%d:%d', fragment.args,
-                            filepath, fragment.line, fragment.column
-                        )
+                        self.logger.warn(ex.to_message())
                 compiled.append(context.get(fragment.args, ''))
             elif fragment.command == 'JUMP':
                 compiled.extend(

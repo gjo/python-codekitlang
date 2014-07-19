@@ -9,6 +9,23 @@ import mock
 import testfixtures
 
 
+class ExceptionStringTestCase(unittest.TestCase):
+
+    def test_compile_error(self):
+        from ..compiler import CompileError
+        ex = CompileError()
+        ex.to_message()
+
+    def test_cyclic_inclusion_error(self):
+        from ..compiler import CyclicInclusionError
+        ex = CyclicInclusionError('A', ('B', 'C', 'D'))
+        self.assertEqual(
+            ex.to_message(),
+            'Compile Error: file "A" is included already '
+            'from "D" from "C" from "B"'
+        )
+
+
 class InitTestCase(unittest.TestCase):
 
     def test_fp_none(self):
@@ -341,7 +358,8 @@ class ParseFileTestCase(unittest.TestCase):
         """
         self.assertParsed('parse_file_missing_file.kit')
         l.check(
-            ('codekitlang.compiler', 'WARNING', 'file None not found'),
+            ('codekitlang.compiler', 'WARNING',
+             'Compile Error: file "None" does not found'),
         )
 
     def test_filenotfound_exception(self):
@@ -392,8 +410,11 @@ BBB
 """)
         f = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                          'data', 'b', 'generate_to_str_missing_var.kit')
-        l.check(('codekitlang.compiler', 'WARNING',
-                 'variable aaa not found on {}:2:1'.format(f)),)
+        l.check(
+            ('codekitlang.compiler', 'WARNING',
+             'Compile Error: variable "aaa" does not found on "{}:2:1"'
+             .format(f)),
+        )
 
     def test_missing_var_exception(self):
         from ..compiler import VariableNotFoundError
