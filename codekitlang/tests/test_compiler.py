@@ -6,6 +6,7 @@ import shutil
 import tempfile
 import unittest
 import mock
+import testfixtures
 
 
 class InitTestCase(unittest.TestCase):
@@ -333,8 +334,15 @@ class ParseFileTestCase(unittest.TestCase):
              Fragment(69, 4, 12, 'NOOP', '\nBBB\n')]
         )
 
-    def test_filenotfound_logonly(self):
+    @testfixtures.log_capture()
+    def test_filenotfound_logonly(self, l):
+        """
+        @type l: testfixtures.LogCapture
+        """
         self.assertParsed('parse_file_missing_file.kit')
+        l.check(
+            ('codekitlang.compiler', 'WARNING', 'file None not found'),
+        )
 
     def test_filenotfound_exception(self):
         from ..compiler import FileNotFoundError

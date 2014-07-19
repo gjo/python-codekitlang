@@ -31,7 +31,8 @@ setup(
     include_package_data=False,
     zip_safe=False,
     install_requires=('setuptools',),
-    tests_require=('pytest-cov', 'pytest-pep8', 'pytest-flakes', 'mock',),
+    tests_require=('pytest-cov', 'pytest-pep8', 'pytest-flakes', 'mock',
+                   'testfixtures'),
     cmdclass={'test': PyTest},
     test_suite = 'codekitlang.tests',
     entry_points={
