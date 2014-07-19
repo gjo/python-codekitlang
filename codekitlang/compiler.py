@@ -1,11 +1,35 @@
 # -*- coding: utf-8 -*-
 
+import collections
 import logging
 import os
 import re
 
 
-logger = logging.getLogger(__name__)
+def _(s):
+    return s
+
+
+Fragment = collections.namedtuple(
+    'Fragment',
+    (
+        'pos',  # fpos of fragment start
+        'line',  # line number of fragment
+        'column',  # column number of fragment
+        'command',  # NOOP, STOR, LOAD, JUMP
+        'args',
+    ),
+)
+NEW_LINE_RE = re.compile(r'\r?\n', re.MULTILINE)
+SPECIAL_COMMENT_RE = re.compile(
+    r'(?P<wrapper><!--\s*(?:'
+    r'@(?:(?i)(?:import|include))\s+(?P<filenames>.*?)'
+    r'|'
+    r'[@$](?P<variable>[a-zA-Z][^\s:=]*)\s*(?:[\s:=]\s*(?P<value>.*?))?'
+    r')-->)',
+    re.DOTALL | re.LOCALE | re.MULTILINE | re.UNICODE
+)
+default_logger = logging.getLogger(__name__)
 
 
 def get_file_content(filepath, encoding_hints=None):
@@ -31,11 +55,36 @@ def strip_basenames(filepath):
 
 
 class CompileError(Exception):
-    pass
+
+    def to_message(self):
+        return _('Compile Error: unknown error')
+
+
+class CyclicInclusionError(CompileError):
+
+    def __init__(self, filepath, stack):
+        self.filepath = filepath
+        self.stack = stack
+        super(CyclicInclusionError, self).__init__(filepath, stack)
+
+    def to_message(self):
+        msg = _('Compile Error: file "{}" is included already from {}')
+        msg = msg.format(
+            self.filepath,
+            _(' from ').join(['"{}"'.format(s) for s in reversed(self.stack)])
+        )
+        return msg
 
 
 class FileNotFoundError(CompileError):
-    pass
+
+    def __init__(self, filename):
+        self.filename = filename
+        super(FileNotFoundError, self).__init__(filename)
+
+    def to_message(self):
+        s = _('Compile Error: file "{}" does not found').format(self.filename)
+        return s
 
 
 class UnknownEncodingError(CompileError):
@@ -43,23 +92,36 @@ class UnknownEncodingError(CompileError):
 
 
 class VariableNotFoundError(CompileError):
-    pass
+
+    def __init__(self, filepath, fragment):
+        self.filepath = filepath
+        self.fragment = fragment
+        super(VariableNotFoundError, self).__init__(filepath, fragment)
+
+    def to_message(self):
+        s = _('Compile Error: variable "{}" does not found on "{}:{}:{}"')
+        s = s.format(self.fragment.args, self.filepath, self.fragment.line,
+                     self.fragment.column)
+        return s
 
 
 class Compiler(object):
 
-    SPECIAL_COMMENT_RE = re.compile(
-        r'(?P<wrapper><!--\s*(?:'
-        r'@(?:(?i)(?:import|include))\s+(?P<filenames>.*?)'
-        r'|'
-        r'[@$](?P<variable>[a-zA-Z][^\s:=]*)\s*(?:[\s:=]\s*(?P<value>.*?))?'
-        r')-->)',
-        re.DOTALL | re.LOCALE | re.MULTILINE | re.UNICODE
-    )
+    NEW_LINE_RE = NEW_LINE_RE
+    SPECIAL_COMMENT_RE = SPECIAL_COMMENT_RE
+    logger = default_logger
 
-    def __init__(self, framework_paths=None, strip_basenames=None):
+    def __init__(self, framework_paths=None, logger=None,
+                 missing_file_behavior=None, missing_variable_behavior=None,
+                 strip_basenames=None):
         """
         @param framework_paths: [str, ...]
+        @param logger: logging.Logger
+        @param missing_file_behavior: 'ignore', 'logonly' or 'exception'
+                                      (default: 'logonly')
+        @param missing_variable_behavior: 'ignroe', 'logonly' or 'exception'
+                                          (default: 'ignore')
+        @param strip_basenames: bool
         """
         self.strip_basenames = bool(strip_basenames)
         if framework_paths is None:
@@ -70,6 +132,18 @@ class Compiler(object):
             self.framework_paths = (framework_paths,)
         else:
             self.framework_paths = tuple(framework_paths)
+
+        if logger is not None:
+            self.logger = logger
+
+        if missing_file_behavior is None:
+            missing_file_behavior = 'logonly'
+        self.missing_file_behavior = missing_file_behavior
+
+        if missing_variable_behavior is None:
+            missing_variable_behavior = 'ignore'
+        self.missing_variable_behavior = missing_variable_behavior
+
         self.parsed_caches = dict()
 
     def resolve_path(self, filename, base_path):
@@ -98,12 +172,13 @@ class Compiler(object):
                         prefix + os.path.basename(filename)
                     )
                 if os.path.exists(filepath):
-                    logger.debug('Using %s for %s', filepath, filename)
+                    self.logger.debug('Using %s for %s', filepath, filename)
                     return filepath
                 if self.strip_basenames:
                     filepath = strip_basenames(filepath)
                     if os.path.exists(filepath):
-                        logger.debug('Using %s for %s', filepath, filename)
+                        self.logger.debug('Using %s for %s', filepath,
+                                          filename)
                         return filepath
         return None
 
@@ -135,66 +210,110 @@ class Compiler(object):
 
     def parse_str(self, s):
         """
-        @type s: str (Python2.X unicode)
-        @rtype: [(str, str), ...]
+        @type s: str
+        @rtype: [(int, int, int, str, str), ...]
         """
         parsed = []
         pos = 0
+        line = 1
+        column = 1
         for m in self.SPECIAL_COMMENT_RE.finditer(s):
             if m.start('wrapper') > pos:
-                parsed.append(('NOOP', s[pos:m.start('wrapper')]))
+                subs = s[pos:m.start('wrapper')]
+                parsed.append(Fragment(pos, line, column, 'NOOP', subs))
+
+            pos = m.start('wrapper')
+            subs = self.NEW_LINE_RE.split(s[:pos])
+            line = len(subs)
+            column = len(subs[-1]) + 1
+
             if m.group('filenames'):
                 for filename in m.group('filenames').split(','):
                     filename = filename.strip().strip('\'"')
-                    parsed.append(('JUMP', filename))
+                    parsed.append(Fragment(pos, line, column, 'JUMP',
+                                           filename))
             elif m.group('value'):
                 value = m.group('value').strip()
-                parsed.append(('STOR', (m.group('variable'), value)))
+                parsed.append(Fragment(pos, line, column, 'STOR',
+                                       (m.group('variable'), value)))
             else:  # m.group('variable')
-                parsed.append(('LOAD', m.group('variable')))
+                parsed.append(Fragment(pos, line, column, 'LOAD',
+                                       m.group('variable')))
+
             pos = m.end('wrapper')
-        parsed.append(('NOOP', s[pos:]))
+            subs = self.NEW_LINE_RE.split(s[:pos])
+            line = len(subs)
+            column = len(subs[-1]) + 1
+
+        parsed.append(Fragment(pos, line, column, 'NOOP', s[pos:]))
         return parsed
 
     def parse_file(self, filepath=None, filename=None, basepath=None):
         filepath = self.normalize_path(filepath, filename, basepath)
+        if filepath is None or not os.path.exists(filepath):
+            ex = FileNotFoundError(filepath)
+            if self.missing_file_behavior == 'exception':
+                raise ex
+            if self.missing_file_behavior == 'logonly':
+                self.logger.warn(ex.to_message())
+            return None
         signature = self.get_new_signature(filepath)
         if signature:
             _, ext = os.path.splitext(filepath)
             encoding, s = get_file_content(filepath)
-            data = self.parse_str(s) if ext == '.kit' else [('NOOP', s)]
+            if ext == '.kit':
+                data = self.parse_str(s)
+            else:
+                data = [Fragment(0, 1, 1, 'NOOP', s)]
             self.parsed_caches[filepath] = dict(
                 signature=signature,
                 encoding=encoding,
                 data=data,
             )
             for i in range(len(data)):
-                command, subfilename = data[i]
-                if command == 'JUMP':
+                fragment = data[i]
+                if fragment.command == 'JUMP':
                     subfilepath = self.parse_file(
-                        filename=subfilename,
+                        filename=fragment.args,
                         basepath=os.path.dirname(filepath)
                     )
-                    data[i] = ('JUMP', subfilepath)
+                    data[i] = Fragment(fragment.pos,
+                                       fragment.line,
+                                       fragment.column,
+                                       'JUMP',
+                                       subfilepath)
         return filepath
 
-    def generate_to_list(self, filepath, context=None):
+    def generate_to_list(self, filepath, context=None, stack=None):
         filepath = os.path.realpath(filepath)
         if context is None:
             context = dict()
+        if stack is None:
+            stack = tuple()
+        if filepath in stack:
+            raise CyclicInclusionError(filepath, stack)
         compiled = []
         if filepath not in self.parsed_caches:
             filepath = self.parse_file(filepath=filepath)
-        cache = self.parsed_caches[filepath]
-        for command, args in cache['data']:
-            if command == 'NOOP':
-                compiled.append(args)
-            elif command == 'STOR':
-                context[args[0]] = args[1]
-            elif command == 'LOAD':
-                compiled.append(context[args])
-            elif command == 'JUMP':
-                compiled.extend(self.generate_to_list(args, context.copy()))
+        cache = self.parsed_caches.get(filepath, {})
+        for fragment in cache.get('data', []):
+            if fragment.command == 'NOOP':
+                compiled.append(fragment.args)
+            elif fragment.command == 'STOR':
+                context[fragment.args[0]] = fragment.args[1]
+            elif fragment.command == 'LOAD':
+                if fragment.args not in context:
+                    ex = VariableNotFoundError(filepath, fragment)
+                    if self.missing_variable_behavior == 'exception':
+                        raise ex
+                    elif self.missing_variable_behavior == 'logonly':
+                        self.logger.warn(ex.to_message())
+                compiled.append(context.get(fragment.args, ''))
+            elif fragment.command == 'JUMP':
+                compiled.extend(
+                    self.generate_to_list(fragment.args, context.copy(),
+                                          stack + (filepath,))
+                )
         return compiled
 
     def generate_to_str(self, filepath):
