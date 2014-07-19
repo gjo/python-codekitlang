@@ -9,7 +9,8 @@ There is the `Reference implementation`_ written by Objective-C.
 .. _CodeKit Language: http://incident57.com/codekit/kit.php
 .. _Reference implementation: https://github.com/bdkjones/Kit
 
-INSTALL
+
+Install
 =======
 
 From PyPI::
@@ -20,41 +21,48 @@ From source::
 
   python setup.py install
 
-RUNNING COMPILER
+
+Running Compiler
 ================
 
 Run ``pykitlangc`` or ``python -m codekitlang.command``::
 
-  usage: command.py [-h] [--framework-paths DIR] SOURCE DEST
+  usage: pykitlangc [-h] [-f DIR] [--missing-file-behavior BEHAVIOR]
+                    [--missing-variable-behavior BEHAVIOR]
+                    SRC DEST
 
   CodeKit Language Compiler.
 
   positional arguments:
-    SOURCE
-    DEST
+    SRC                   input file
+    DEST                  output file
 
   optional arguments:
     -h, --help            show this help message and exit
-    --framework-paths DIR, -f DIR
+    -f DIR, --framework-paths DIR
+                          path for lookup include file (allow multiple defs)
+    --missing-file-behavior BEHAVIOR
+                          one of ignore, logonly, exception (default: logonly)
+    --missing-variable-behavior BEHAVIOR
+                          one of ignore, logonly, exception (default: ignore)
 
-RUNNING TESTS
+
+Running Tests
 =============
 
 From the top level directory run ``python setup.py test`` or run ``py.test``.
+
 
 TODO
 ====
 
 Under features are planed, but not implement yet.
 
-- User friendly error messages.
-- Detect cyclic inclusion.
-- Handle options for files not found.
-- Handle options for variables not found.
 - Directory recursive compile.
 - Watchdog integration.
 - Encoding Detection.
 - Python3 support.
+
 
 License
 =======
