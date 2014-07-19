@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import argparse
 import logging
+import sys
 from . import compiler
 
 
@@ -39,7 +42,11 @@ def main():
     logger.setLevel(logging.INFO)
     options['logger'] = logger
     compiler_ = compiler.Compiler(**options)
-    compiler_.generate_to_file(dest[0], src[0])
+    try:
+        compiler_.generate_to_file(dest[0], src[0])
+    except compiler.CompileError as e:
+        print(e.to_message(), file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == '__main__':  # pragma:nocover
     main()

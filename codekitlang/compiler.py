@@ -6,6 +6,10 @@ import os
 import re
 
 
+def _(s):
+    return s
+
+
 Fragment = collections.namedtuple(
     'Fragment',
     (
@@ -41,15 +45,36 @@ def get_file_content(filepath, encoding_hints=None):
 
 
 class CompileError(Exception):
-    pass
+
+    def to_message(self):
+        return _('Compile Error: unknown error')
 
 
 class CyclicInclusionError(CompileError):
-    pass
+
+    def __init__(self, filepath, stack):
+        self.filepath = filepath
+        self.stack = stack
+        super(CyclicInclusionError, self).__init__(filepath, stack)
+
+    def to_message(self):
+        msg = _('Compile Error: file "{}" is included already from {}')
+        msg = msg.format(
+            self.filepath,
+            _(' from ').join(['"{}"'.format(s) for s in reversed(self.stack)])
+        )
+        return msg
 
 
 class FileNotFoundError(CompileError):
-    pass
+
+    def __init__(self, filename):
+        self.filename = filename
+        super(FileNotFoundError, self).__init__(filename)
+
+    def to_message(self):
+        s = _('Compile Error: file "{}" does not found').format(self.filename)
+        return s
 
 
 class UnknownEncodingError(CompileError):
@@ -57,7 +82,17 @@ class UnknownEncodingError(CompileError):
 
 
 class VariableNotFoundError(CompileError):
-    pass
+
+    def __init__(self, filepath, fragment):
+        self.filepath = filepath
+        self.fragment = fragment
+        super(VariableNotFoundError, self).__init__(filepath, fragment)
+
+    def to_message(self):
+        s = _('Compile Error: variable "{}" does not found on "{}:{}:{}"')
+        s = s.format(self.fragment.args, self.filepath, self.fragment.line,
+                     self.fragment.column)
+        return s
 
 
 class Compiler(object):
