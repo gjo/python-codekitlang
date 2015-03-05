@@ -4,7 +4,8 @@ Change History
 0.4 - Unreleased
 ----------------
 
-- In-progress...
+- Fix loading variable before normal html comment
+[huubbouma]
 
 0.3 - 2014-07-19
 ----------------
