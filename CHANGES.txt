@@ -1,6 +1,11 @@
 Change History
 ==============
 
+0.4 - 2015-03-09
+----------------
+
+- Fix loading variable before normal html comment (by huubbouma)
+
 0.3 - 2014-07-19
 ----------------
 

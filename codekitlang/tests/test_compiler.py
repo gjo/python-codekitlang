@@ -161,7 +161,10 @@ class GetNewSignatureTestCase(unittest.TestCase):
 
     def test(self):
         fn = os.path.join(self.tempdir, 'testfile')
-        touch = lambda x: open(fn, 'wb').write(x)
+
+        def touch(x):
+            open(fn, 'wb').write(x)
+
         touch('')
         ret1 = self.func(fn)
         self.assertIsNotNone(ret1)
@@ -245,6 +248,15 @@ class ParseStrTestCase(unittest.TestCase):
         self.assertEqual([Fragment(0, 1, 1, 'NOOP', 'pre '),
                           Fragment(4, 1, 5, 'LOAD', 'VAR2'),
                           Fragment(18, 1, 19, 'NOOP', ' post')], ret)
+
+    def test_load_3(self):
+        from ..compiler import Fragment
+        source = '<!--$cssPath-->main.css">' \
+                 '<!--[if lt IE 7]><p>NOOOO</p><![endif]-->'
+        remainder = 'main.css"><!--[if lt IE 7]><p>NOOOO</p><![endif]-->'
+        ret = self.func(source)
+        self.assertEqual([Fragment(0, 1, 1, 'LOAD', 'cssPath'),
+                          Fragment(15, 1, 16, 'NOOP', remainder)], ret)
 
     def test_stor_1(self):
         from ..compiler import Fragment

@@ -25,7 +25,7 @@ SPECIAL_COMMENT_RE = re.compile(
     r'(?P<wrapper><!--\s*(?:'
     r'@(?:(?i)(?:import|include))\s+(?P<filenames>.*?)'
     r'|'
-    r'[@$](?P<variable>[a-zA-Z][^\s:=]*)\s*(?:[\s:=]\s*(?P<value>.*?))?'
+    r'[@$](?P<variable>[a-zA-Z][^\s:=]*?)\s*(?:[\s:=]\s*(?P<value>.*?))?'
     r')-->)',
     re.DOTALL | re.LOCALE | re.MULTILINE | re.UNICODE
 )
