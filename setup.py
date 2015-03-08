@@ -43,9 +43,9 @@ setup(
     zip_safe=False,
     install_requires=('setuptools',),
     tests_require=('pytest-cov', 'pytest-pep8', 'pytest-flakes', 'mock',
-                   'testfixtures'),
+                   'testfixtures', 'pytest-cache', ),
     cmdclass={'test': PyTest},
-    test_suite = 'codekitlang.tests',
+    test_suite='codekitlang.tests',
     entry_points={
         'console_scripts': (
             'pykitlangc = codekitlang.command:main',
