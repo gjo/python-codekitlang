@@ -28,7 +28,7 @@ class PyTest(TestCommand):
 
 setup(
     name='CodeKitLang',
-    version='0.4',
+    version='0.5dev1',
     description='CodeKit Language Compiler, Python implementation',
     long_description='\n\n'.join([
         open('README.rst').read(),
